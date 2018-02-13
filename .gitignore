@@ -3,3 +3,4 @@
 vnc.list
 profiles.list
 options.cfg
+resource/vnc/*

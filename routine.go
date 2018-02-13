@@ -15,6 +15,7 @@ import (
 )
 
 
+
 func helperThread(){
 	logAdd(MESS_INFO, "helperThread запустился")
 	for true {
@@ -57,7 +58,7 @@ func getPid(serial string) string{
 }
 
 func logAdd(tmess int, mess string){
-	if fDebug && typeLog >= tmess {
+	if options.FDebug && typeLog >= tmess {
 
 		if logFile == nil {
 			logFile, _ = os.Create(LOG_NAME)
@@ -136,58 +137,6 @@ func getSHA256(str string) string {
 	return r
 }
 
-func saveProfiles(){
-	var list []Profile
-
-	profiles.Range(func(key interface{}, value interface{}) bool{
-		list = append(list, *value.(*Profile))
-		return true
-	})
-
-	b, err := json.Marshal(list)
-	//fmt.Println(string(b))
-	if err == nil {
-		f, err := os.Create(FILE_PROFILES + ".tmp")
-		if err == nil {
-			n, err := f.Write(b)
-			if n == len(b) && err == nil {
-				f.Close()
-
-				os.Remove(FILE_PROFILES)
-				os.Rename(FILE_PROFILES + ".tmp", FILE_PROFILES)
-			} else {
-				f.Close()
-				logAdd(MESS_ERROR, "Не удалось сохранить профили: " + fmt.Sprint(err))
-			}
-		}
-	}
-}
-
-func loadProfiles(){
-	var list []Profile
-
-	f, err := os.Open(FILE_PROFILES)
-	defer f.Close()
-	if err == nil {
-		b, err := ioutil.ReadAll(f)
-		if err == nil {
-			err = json.Unmarshal(b, &list)
-			if err == nil {
-				for _, value := range list {
-					profiles.Store(value.Email, &value)
-				}
-			} else {
-				logAdd(MESS_ERROR, "не получилось загрузить профили")
-			}
-		} else {
-			logAdd(MESS_ERROR, "не получилось загрузить профили")
-		}
-	} else {
-		logAdd(MESS_ERROR, "не получилось загрузить профили")
-	}
-
-}
-
 func delContact(first *Contact, id int) *Contact {
 	if first == nil {
 		return first
@@ -258,6 +207,149 @@ func getNewId(first *Contact) int {
 	}
 
 	return r
+}
+
+func saveProfiles(){
+	var list []Profile
+
+	profiles.Range(func(key interface{}, value interface{}) bool{
+		list = append(list, *value.(*Profile))
+		return true
+	})
+
+	b, err := json.Marshal(list)
+	if err == nil {
+		f, err := os.Create(FILE_PROFILES + ".tmp")
+		if err == nil {
+			n, err := f.Write(b)
+			if n == len(b) && err == nil {
+				f.Close()
+
+				os.Remove(FILE_PROFILES)
+				os.Rename(FILE_PROFILES + ".tmp", FILE_PROFILES)
+			} else {
+				f.Close()
+				logAdd(MESS_ERROR, "Не удалось сохранить профили: " + fmt.Sprint(err))
+			}
+		} else {
+			logAdd(MESS_ERROR, "Не удалось сохранить профили: " + fmt.Sprint(err))
+		}
+	} else {
+		logAdd(MESS_ERROR, "Не удалось сохранить профили: " + fmt.Sprint(err))
+	}
+}
+
+func loadProfiles(){
+	var list []Profile
+
+	f, err := os.Open(FILE_PROFILES)
+	defer f.Close()
+	if err == nil {
+		b, err := ioutil.ReadAll(f)
+		if err == nil {
+			err = json.Unmarshal(b, &list)
+			if err == nil {
+				for _, value := range list {
+					profiles.Store(value.Email, &value)
+				}
+			} else {
+				logAdd(MESS_ERROR, "Не получилось загрузить профили: " + fmt.Sprint(err))
+			}
+		} else {
+			logAdd(MESS_ERROR, "Не получилось загрузить профили: " + fmt.Sprint(err))
+		}
+	} else {
+		logAdd(MESS_ERROR, "Не получилось загрузить профили: " + fmt.Sprint(err))
+	}
+}
+
+func saveOptions(){
+
+	b, err := json.Marshal(options)
+	if err == nil {
+		f, err := os.Create(FILE_OPTIONS + ".tmp")
+		if err == nil {
+			n, err := f.Write(b)
+			if n == len(b) && err == nil {
+				f.Close()
+
+				os.Remove(FILE_OPTIONS)
+				os.Rename(FILE_OPTIONS + ".tmp", FILE_OPTIONS)
+			} else {
+				f.Close()
+				logAdd(MESS_ERROR, "Не удалось сохранить настройки: " + fmt.Sprint(err))
+			}
+		} else {
+			logAdd(MESS_ERROR, "Не удалось сохранить настройки: " + fmt.Sprint(err))
+		}
+	} else {
+		logAdd(MESS_ERROR, "Не удалось сохранить настройки: " + fmt.Sprint(err))
+	}
+}
+
+func loadOptions(){
+
+	f, err := os.Open(FILE_OPTIONS)
+	defer f.Close()
+	if err == nil {
+		b, err := ioutil.ReadAll(f)
+		if err == nil {
+			err = json.Unmarshal(b, &options)
+			if err != nil {
+				logAdd(MESS_ERROR, "Не получилось загрузить настройки: " + fmt.Sprint(err))
+			}
+		} else {
+			logAdd(MESS_ERROR, "Не получилось загрузить настройки: " + fmt.Sprint(err))
+		}
+	} else {
+		logAdd(MESS_ERROR, "Не получилось загрузить настройки: " + fmt.Sprint(err))
+	}
+}
+
+func saveVNCList(){
+
+	b, err := json.Marshal(array_vnc)
+	if err == nil {
+		f, err := os.Create(FILE_VNCLIST + ".tmp")
+		if err == nil {
+			n, err := f.Write(b)
+			if n == len(b) && err == nil {
+				f.Close()
+
+				os.Remove(FILE_VNCLIST)
+				os.Rename(FILE_VNCLIST + ".tmp", FILE_VNCLIST)
+			} else {
+				f.Close()
+				logAdd(MESS_ERROR, "Не удалось сохранить список VNC: " + fmt.Sprint(err))
+			}
+		} else {
+			logAdd(MESS_ERROR, "Не удалось сохранить список VNC: "+fmt.Sprint(err))
+		}
+	} else {
+		logAdd(MESS_ERROR, "Не удалось сохранить список VNC: " + fmt.Sprint(err))
+	}
+}
+
+func loadVNCList(){
+
+	f, err := os.Open(FILE_VNCLIST)
+	defer f.Close()
+	if err == nil {
+		b, err := ioutil.ReadAll(f)
+		if err == nil {
+			err = json.Unmarshal(b, &array_vnc)
+			if err == nil {
+				default_vnc = 0
+				return
+			} else {
+				logAdd(MESS_ERROR, "Не получилось загрузить список VNC: " + fmt.Sprint(err))
+			}
+		} else {
+			logAdd(MESS_ERROR, "Не получилось загрузить список VNC: " + fmt.Sprint(err))
+		}
+	} else {
+		logAdd(MESS_ERROR, "Не получилось загрузить список VNC: " + fmt.Sprint(err))
+	}
 }
 
 //пробежимся по всем контактам и если есть совпадение, то добавим ссылку на профиль этому клиенту

@@ -13,6 +13,8 @@ const(
 	CODE_LENGTH = 64 //длина code
 	PASSWORD_LENGTH = 14
 	FILE_PROFILES = "profiles.list"
+	FILE_OPTIONS = "options.cfg"
+	FILE_VNCLIST = "vnc.list"
 	LOG_NAME = "log.txt"
 
 	//константы ожидания
@@ -46,32 +48,25 @@ const(
 	TMESS_STATUS = 14
 	TMESS_INFO_CONTACT = 15
 	TMESS_INFO_ANSWER = 16
-	TMESS_REVNC = 17
+	TMESS_MANAGE = 17
 	TMESS_PING = 18
 
 )
 
 var(
-	//настройки smtp сервера
-	serverSMTP = "smtp.gmail.com"
-	portSMTP = "587"
-	loginSMTP = ""
-	passSMTP = ""
 
-	//реквизиты сервера
-	mainserver_port = "65471"
-
-	//реквизиты сервер
-	dataserver_port = "65475"
-
-	//реквизиты веб сервера
-	httpserver_port = "8090"
-
-	//размер буфера для всех операций с сокетами
-	sizeBuff = 8000
-
-	//очевидно что флаг для отладки
-	fDebug = true
+	//опции по-умолчанию
+	options = Options{
+		"",
+		"",
+		"",
+		"",
+		"65471",
+		"65475",
+		"8090",
+		16000,
+		true,
+	}
 
 	//считаем всякую бесполезную информацию или нет
 	//fCounter = true
@@ -132,73 +127,12 @@ var(
 		{TMESS_STATUS, processStatus},
 		{TMESS_INFO_CONTACT, processInfoContact},
 		{TMESS_INFO_ANSWER, processInfoAnswer},
-		{TMESS_REVNC, processReVNC},
+		{TMESS_MANAGE, processManage},
 		{TMESS_PING, processPing} }
 
 	//список доступных vnc клиентов и выбранный по-умолчанию
-	default_vnc = 0 //+1 for real item
-	array_vnc = []VNC{
-		{
-			"tvnserver.exe",
-			"tvnviewer.exe",
-
-			"tvnserver.exe -start",
-			"tvnserver.exe -stop",
-			"tvnserver.exe -install -silent",
-			"tvnserver.exe -remove -silent",
-			"reg import configAdmin.reg",
-			"tvnserver.exe -configservice",
-
-			"tvnserver.exe",
-			"",
-			"",
-			"",
-			"reg import configUser.reg",
-			"tvnserver.exe -configapp",
-
-			"tvnviewer.exe %adr",
-			"",
-			"",
-			"",
-			"",
-			"",
-
-			"63130",
-			"/resource/vnc/tightvnc-2.8.8_x64.zip",
-			"TightVNC",
-			"2.8.8_x64",
-			"" },
-			
-			{
-			"winvnc.exe",
-			"vncviewer.exe",
-
-			"",
-			"",
-			"winvnc.exe -install -service",
-			"winvnc.exe -uninstall -service",
-			"",
-			"uvnc_settings.exe",
-
-			"winvnc.exe",
-			"",
-			"",
-			"",
-			"",
-			"uvnc_settings.exe",
-
-			"vncviewer.exe %adr",
-			"",
-			"",
-			"",
-			"",
-			"",
-
-			"63130",
-			"/resource/vnc/ultravnc_1.2.17_x64.zip",
-			"UltraVNC",
-			"1.2.17_x64",
-			"" } }
+	default_vnc = -1
+	array_vnc []VNC
 )
 
 //double pointer
@@ -214,6 +148,29 @@ type ProcessingMessage struct {
 type Message struct {
 	TMessage int
 	Messages []string
+}
+
+type Options struct {
+	//настройки smtp сервера
+	ServerSMTP string
+	PortSMTP   string
+	LoginSMTP  string
+	PassSMTP   string
+
+	//реквизиты сервера
+	MainserverPort string
+
+	//реквизиты сервер
+	DataserverPort string
+
+	//реквизиты веб сервера
+	HttpserverPort string
+
+	//размер буфера для операций с сокетами
+	SizeBuff 	int
+
+	//очевидно что флаг для отладки
+	FDebug		bool
 }
 
 type VNC struct {
@@ -289,6 +246,4 @@ type Contact struct {
 
 	Inner   *Contact
 	Next    *Contact
-
-	//profiles sync.Map //профили которые содержат этот контакт(используем для отправки им информации о статусе)
 }

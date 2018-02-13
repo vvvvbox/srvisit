@@ -12,6 +12,7 @@ import (
 )
 
 
+
 func processAuth(message Message, conn *net.Conn, curClient *Client, id string) {
 	logAdd(MESS_INFO, id + " пришла авторизация")
 
@@ -217,7 +218,7 @@ func processReg(message Message, conn *net.Conn, curClient *Client, id string) {
 		newProfile.Pass = randomString(PASSWORD_LENGTH)
 
 		msg := []byte("Subject: Information from reVisit\r\n\r\nYour password is " + newProfile.Pass + "\r\n")
-		err := smtp.SendMail(serverSMTP + ":" + portSMTP, smtp.PlainAuth("", loginSMTP, passSMTP, serverSMTP), loginSMTP, []string{message.Messages[0]}, msg)
+		err := smtp.SendMail(options.ServerSMTP+ ":" + options.PortSMTP, smtp.PlainAuth("", options.LoginSMTP, options.PassSMTP, options.ServerSMTP), options.LoginSMTP, []string{message.Messages[0]}, msg)
 		if err != nil {
 			logAdd(MESS_ERROR, id + " не удалось отправить письмо с паролем: " + fmt.Sprint(err))
 			sendMessage(conn, TMESS_NOTIFICATION, "Не удалось отправить письмо с паролем!")
@@ -481,9 +482,9 @@ func processInfoAnswer(message Message, conn *net.Conn, curClient *Client, id st
 
 }
 
-func processReVNC(message Message, conn *net.Conn, curClient *Client, id string) {
-	logAdd(MESS_INFO, id + " пришел запрос на переустановку vnc")
-	if len(message.Messages) != 2 {
+func processManage(message Message, conn *net.Conn, curClient *Client, id string) {
+	logAdd(MESS_INFO, id + " пришел запрос на управление")
+	if len(message.Messages) < 2 {
 		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
 		return
 	}
@@ -501,7 +502,11 @@ func processReVNC(message Message, conn *net.Conn, curClient *Client, id string)
 			if exist == true {
 				peer := value.(*Client)
 
-				sendMessage(peer.Conn, TMESS_REVNC, curClient.Pid, p.Digest, p.Salt, message.Messages[1])
+				var content []string
+				content = append(content, curClient.Pid, p.Digest, p.Salt)
+				content = append(content, message.Messages[1:]...)
+
+				sendMessage(peer.Conn, TMESS_MANAGE, content...)
 			} else {
 				logAdd(MESS_ERROR, id + " нет такого контакта в сети")
 				sendMessage(conn, TMESS_NOTIFICATION, "Нет такого контакта в сети!")

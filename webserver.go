@@ -8,7 +8,9 @@ import (
 	"os"
 	"bytes"
 	"time"
+	"strings"
 )
+
 
 
 func httpServer(){
@@ -23,7 +25,7 @@ func httpServer(){
 
 	http.HandleFunc("/api", handleAPI)
 
-	err := http.ListenAndServe(":" + httpserver_port, nil)
+	err := http.ListenAndServe(":" + options.HttpserverPort, nil)
 	if err != nil {
 		logAdd(MESS_ERROR, "webServer не смог занять порт: " + fmt.Sprint(err))
 	}
@@ -89,10 +91,7 @@ func handleResources(w http.ResponseWriter, r *http.Request) {
 
 		return true
 	})
-
 	connectionsString = connectionsString + "</pre>"
-
-
 
 	file, _ := os.Open("resource/resources.html")
 	body, err := ioutil.ReadAll(file)
@@ -128,8 +127,8 @@ func handleStatistics(w http.ResponseWriter, r *http.Request) {
 
 func handleLogs(w http.ResponseWriter, r *http.Request) {
 
-	logsString := "<pre>"
-	//logsString := ""
+	//logsString := "<pre>"
+	logsString := ""
 	file, _ := os.Open(LOG_NAME)
 	log, err := ioutil.ReadAll(file)
 	if err == nil {
@@ -137,9 +136,9 @@ func handleLogs(w http.ResponseWriter, r *http.Request) {
 
 		logsString = logsString + string(log)
 	}
-	logsString = logsString + "</pre>"
+	//logsString = logsString + "</pre>"
 
-	//logsString = strings.Replace(logsString, "\n", "<br>\n", -1)
+	logsString = strings.Replace(logsString, "\n", "<br>\n", -1)
 	//logsString = strings.Replace(logsString, "\t", "", -1)
 
 	file, _ = os.Open("resource/logs.html")
@@ -195,6 +194,7 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 func handleResource(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, r.URL.Path[1:])
 }
+
 
 
 func getCounterBytes() []string {
@@ -254,7 +254,6 @@ func getCounterBytes() []string {
 func pageReplace(e []byte, a string, b string) []byte{
 	return bytes.Replace(e, []byte(a), []byte(b), -1)
 }
-
 
 func addMenu() string{
 	out, err := json.Marshal(menus)

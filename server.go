@@ -18,7 +18,7 @@ import (
 func mainServer(){
 	logAdd(MESS_INFO, "mainServer запустился")
 
-	ln, err := net.Listen("tcp", ":" + mainserver_port)
+	ln, err := net.Listen("tcp", ":" + options.MainserverPort)
 	if err != nil {
 		logAdd(MESS_ERROR, "mainServer не смог занять порт")
 		os.Exit(1)
@@ -122,7 +122,7 @@ func mainHandler(conn *net.Conn) {
 func dataServer(){
 	logAdd(MESS_INFO, "dataServer запустился")
 
-	ln, err := net.Listen("tcp", ":" + dataserver_port)
+	ln, err := net.Listen("tcp", ":" + options.DataserverPort)
 	if err != nil {
 		logAdd(MESS_ERROR, "dataServer не смог занять порт")
 		os.Exit(1)
@@ -188,7 +188,7 @@ func dataHandler(conn *net.Conn) {
 		time.Sleep(time.Millisecond * WAIT_AFTER_CONNECT)
 
 		var z []byte
-		z = make([]byte, sizeBuff)
+		z = make([]byte, options.SizeBuff)
 
 		var bytes uint64
 
@@ -206,7 +206,7 @@ func dataHandler(conn *net.Conn) {
 			bytes = bytes + uint64(n2)
 
 			if (err1 != nil && err1 != io.EOF) && err2 != nil || n1 == 0 || n2 == 0 {
-				logAdd(MESS_INFO, id + " соединение закрылось")
+				logAdd(MESS_INFO, id + " соединение закрылось: " + fmt.Sprint(n1, n2))
 				(*peers.pointer[npeer]).Close()
 				break
 			}
@@ -223,6 +223,8 @@ func dataHandler(conn *net.Conn) {
 	logAdd(MESS_INFO, id + " dataHandler потерял соединение")
 
 }
+
+
 
 func pinger(conn *net.Conn){
 	success := true

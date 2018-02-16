@@ -20,6 +20,7 @@ func helperThread(){
 	logAdd(MESS_INFO, "helperThread запустился")
 	for true {
 		saveProfiles()
+		swiftCounter()
 
 		time.Sleep(time.Second * WAIT_HELPER_CYCLE)
 	}
@@ -352,13 +353,28 @@ func loadVNCList(){
 	}
 }
 
+//пробежимся по профилям, найдем где есть контакты с нашим пид и добавим этот профиль нам
+func addClientToProfile(client *Client) {
+	profiles.Range(func (key interface {}, value interface {}) bool {
+		profile := *value.(*Profile)
+		if addClientToContacts(profile.Contacts, client, &profile) {
+			//если мы есть хоть в одном конакте этого профиля, пробежимся по ним и отправим свой статус
+			profile.clients.Range(func (key interface {}, value interface{}) bool {
+				curClient := value.(*Client)
+				sendMessage(curClient.Conn, TMESS_STATUS, cleanPid(client.Pid), "1")
+				return true
+			})
+		}
+		return true
+	})
+}
+
 //пробежимся по всем контактам и если есть совпадение, то добавим ссылку на профиль этому клиенту
 func addClientToContacts(contact *Contact, client *Client, profile *Profile) bool {
 	res := false
 
 	for contact != nil {
-		if contact.Pid == client.Pid {
-			//contact.profiles.Store(contact.Pid, profile)
+		if cleanPid(contact.Pid) == cleanPid(client.Pid) {
 			client.profiles.Store(profile.Email, profile)
 			res = true
 		}
@@ -366,9 +382,6 @@ func addClientToContacts(contact *Contact, client *Client, profile *Profile) boo
 		if contact.Inner != nil {
 			innerResult := addClientToContacts(contact.Inner, client, profile)
 			if innerResult {
-				//мы же внутри это сделали уже
-				//contact.profiles.Store(contact.Pid, profile)
-				//client.profiles.Store(contact.Pid, profile)
 				res = true
 			}
 		}
@@ -383,11 +396,13 @@ func checkStatuses(curClient *Client, first *Contact) {
 
 	for first != nil {
 
-		_, exist := clients.Load(strings.Replace(first.Pid, ":", "", -1))
-		if exist {
-			sendMessage(curClient.Conn, TMESS_STATUS, fmt.Sprint(first.Id), "1")
-		} else {
-			sendMessage(curClient.Conn, TMESS_STATUS, fmt.Sprint(first.Id), "0")
+		if first.Type != "fold" {
+			_, exist := clients.Load(cleanPid(first.Pid))
+			if exist {
+				sendMessage(curClient.Conn, TMESS_STATUS, fmt.Sprint(cleanPid(first.Pid)), "1")
+			} else {
+				sendMessage(curClient.Conn, TMESS_STATUS, fmt.Sprint(cleanPid(first.Pid)), "0")
+			}
 		}
 
 		if first.Inner != nil {
@@ -414,17 +429,26 @@ func addCounter(bytes uint64) {
 	counterData.mutex.Lock()
 	defer counterData.mutex.Unlock()
 
+	counterData.counterBytes[counterData.currentPos] = counterData.counterBytes[counterData.currentPos] + bytes
+	counterData.counterConnect[counterData.currentPos] = counterData.counterConnect[counterData.currentPos] + 1
+}
+
+func swiftCounter() {
+	counterData.mutex.Lock()
+	defer counterData.mutex.Unlock()
+
 	if time.Now().Hour() != counterData.currentPos {
 		counterData.currentPos = time.Now().Hour()
 
 		counterData.counterBytes[counterData.currentPos] = 0
 		counterData.counterConnect[counterData.currentPos] = 0
 	}
-
-	counterData.counterBytes[counterData.currentPos] = counterData.counterBytes[counterData.currentPos] + bytes
-	counterData.counterConnect[counterData.currentPos] = counterData.counterConnect[counterData.currentPos] + 1
 }
 
+func cleanPid(pid string) string {
+	//todo может потом стоит сюда добавить удаление и других символов
+	return strings.Replace(pid, ":", "", -1)
+}
 
 
 //следующие функции нужны только для отладки

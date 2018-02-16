@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"strconv"
 	"time"
-	"strings"
 )
 
 
@@ -28,7 +27,7 @@ func processAuth(message Message, conn *net.Conn, curClient *Client, id string) 
 
 	salt := randomString(16)
 
-	value, exist := clients.Load(strings.Replace(s, ":", "", -1))
+	value, exist := clients.Load(cleanPid(s))
 	if exist {
 		c := value.(*Client)
 		if c.Conn != nil || (*c.Conn).RemoteAddr() == (*conn).RemoteAddr() {
@@ -36,7 +35,7 @@ func processAuth(message Message, conn *net.Conn, curClient *Client, id string) 
 			if err != nil { //todo проверить необходимость этого
 				logAdd(MESS_INFO, id + fmt.Sprint(err))
 			}
-			clients.Delete(strings.Replace(c.Pid, ":", "", -1))
+			clients.Delete(cleanPid(s))
 			c.Pid = ""
 			c.Pass = ""
 			logAdd(MESS_INFO, id + " удалили дубль")
@@ -50,24 +49,11 @@ func processAuth(message Message, conn *net.Conn, curClient *Client, id string) 
 			curClient.Pid = s
 			curClient.Serial = message.Messages[0]
 			curClient.Salt = salt
-			clients.Store(strings.Replace(s, ":", "", -1), curClient)
+			clients.Store(cleanPid(s), curClient)
 
 			logAdd(MESS_INFO, id + " авторизация успешна")
 
-			//пробежимся по профилям, найдем где есть контакты с нашим пид и добавим этот профиль нам
-			profiles.Range(func (key interface {}, value interface {}) bool {
-				profile := *value.(*Profile)
-				if addClientToContacts(profile.Contacts, curClient, &profile) {
-					//если мы есть хоть в одном конакте этого профиля, пробежимся по ним и отправим свой статус
-					profile.clients.Range(func (key interface {}, value interface{}) bool {
-						client := value.(*Client)
-						sendMessage(client.Conn, TMESS_STATUS, curClient.Pid, "1")
-						return true
-					})
-				}
-				return true
-			})
-
+			addClientToProfile(curClient)
 		}
 	} else {
 		time.Sleep(time.Millisecond * WAIT_IDLE)
@@ -85,7 +71,7 @@ func processNotification(message Message, conn *net.Conn, curClient *Client, id 
 		return
 	}
 
-	value, exist := clients.Load(strings.Replace(message.Messages[0], ":", "", -1))
+	value, exist := clients.Load(cleanPid(message.Messages[0]))
 
 	if exist == true {
 		peer := value.(*Client)
@@ -108,7 +94,7 @@ func processConnectRaw(message Message, conn *net.Conn, curClient *Client, id st
 		salt = message.Messages[2]
 	}
 
-	value, exist := clients.Load(strings.Replace(message.Messages[0], ":", "", -1))
+	value, exist := clients.Load(cleanPid(message.Messages[0]))
 
 	if exist == true {
 		peer := value.(*Client)
@@ -191,7 +177,7 @@ func processLogin(message Message, conn *net.Conn, curClient *Client, id string)
 			sendMessage(conn, TMESS_LOGIN)
 
 			curClient.Profile = profile.(*Profile)
-			profile.(*Profile).clients.Store(strings.Replace(curClient.Pid, ":", "", -1), curClient)
+			profile.(*Profile).clients.Store(cleanPid(curClient.Pid), curClient)
 			processContacts(message, conn, curClient, id)
 			return
 		}
@@ -304,7 +290,7 @@ func processContact(message Message, conn *net.Conn, curClient *Client, id strin
 			message.Messages[0] = fmt.Sprint(i);
 
 			//если такой пид онлайн - добавить наш профиль туда
-			client, exist := clients.Load(strings.Replace(message.Messages[3], ":", "", -1))
+			client, exist := clients.Load(cleanPid(message.Messages[3]))
 			if exist {
 				client.(*Client).profiles.Store(profile.Email, profile)
 			}
@@ -347,7 +333,7 @@ func processContacts(message Message, conn *net.Conn, curClient *Client, id stri
 func processLogout(message Message, conn *net.Conn, curClient *Client, id string) {
 	logAdd(MESS_INFO, id + " пришел запрос на выход")
 
-	curClient.Profile.clients.Delete(curClient.Pid)
+	curClient.Profile.clients.Delete(cleanPid(curClient.Pid))
 
 	curClient.Profile = nil
 }
@@ -411,7 +397,7 @@ func processStatus(message Message, conn *net.Conn, curClient *Client, id string
 	if err == nil {
 		contact := getContact(curClient.Profile.Contacts, i)
 		if contact != nil {
-			_, exist := clients.Load(strings.Replace(contact.Pid, ":", "", -1))
+			_, exist := clients.Load(cleanPid(contact.Pid))
 			if exist {
 				sendMessage(conn, TMESS_STATUS, message.Messages[0], "1")
 			} else {
@@ -437,7 +423,7 @@ func processInfoContact(message Message, conn *net.Conn, curClient *Client, id s
 	if err == nil {
 		p := getContact(curClient.Profile.Contacts, i)
 		if p != nil {
-			value, exist := clients.Load(strings.Replace(p.Pid, ":", "", -1))
+			value, exist := clients.Load(cleanPid(p.Pid))
 			if exist == true {
 				peer := value.(*Client)
 
@@ -464,7 +450,7 @@ func processInfoAnswer(message Message, conn *net.Conn, curClient *Client, id st
 		return
 	}
 
-	value, exist := clients.Load(strings.Replace(message.Messages[0], ":", "", -1))
+	value, exist := clients.Load(cleanPid(message.Messages[0]))
 	if exist == true {
 		peer := value.(*Client)
 
@@ -498,7 +484,7 @@ func processManage(message Message, conn *net.Conn, curClient *Client, id string
 	if err == nil {
 		p := getContact(curClient.Profile.Contacts, i)
 		if p != nil {
-			value, exist := clients.Load(strings.Replace(p.Pid, ":", "", -1))
+			value, exist := clients.Load(cleanPid(p.Pid))
 			if exist == true {
 				peer := value.(*Client)
 

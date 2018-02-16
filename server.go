@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"strings"
 )
 
 
@@ -96,7 +95,7 @@ func mainHandler(conn *net.Conn) {
 
 	//удалим себя из профиля если авторизованы
 	if curClient.Profile != nil {
-		curClient.Profile.clients.Delete(strings.Replace(curClient.Pid, ":", "", -1))
+		curClient.Profile.clients.Delete(cleanPid(curClient.Pid))
 	}
 
 	//пробежимся по профилям где мы есть и отправим новый статус
@@ -106,7 +105,7 @@ func mainHandler(conn *net.Conn) {
 		//все кто авторизовался в этот профиль должен получить новый статус
 		profile.clients.Range(func (key interface {}, value interface{}) bool {
 			client := value.(*Client)
-			sendMessage(client.Conn, TMESS_STATUS, curClient.Pid, "0")
+			sendMessage(client.Conn, TMESS_STATUS, cleanPid(curClient.Pid), "0")
 			return true
 		})
 
@@ -115,7 +114,7 @@ func mainHandler(conn *net.Conn) {
 
 	logAdd(MESS_INFO, id + " mainServer потерял соединение")
 	if curClient.Pid != "" {
-		clients.Delete(strings.Replace(curClient.Pid, ":", "", -1))
+		clients.Delete(cleanPid(curClient.Pid))
 	}
 }
 

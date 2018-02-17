@@ -251,7 +251,8 @@ func loadProfiles(){
 			err = json.Unmarshal(b, &list)
 			if err == nil {
 				for _, value := range list {
-					profiles.Store(value.Email, &value)
+					profile := value
+					profiles.Store(profile.Email, &profile)
 				}
 			} else {
 				logAdd(MESS_ERROR, "Не получилось загрузить профили: " + fmt.Sprint(err))

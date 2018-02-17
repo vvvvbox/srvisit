@@ -8,7 +8,6 @@ import (
 	"os"
 	"bytes"
 	"time"
-	"strings"
 )
 
 
@@ -127,27 +126,13 @@ func handleStatistics(w http.ResponseWriter, r *http.Request) {
 
 func handleLogs(w http.ResponseWriter, r *http.Request) {
 
-	//logsString := "<pre>"
-	logsString := ""
-	file, _ := os.Open(LOG_NAME)
-	log, err := ioutil.ReadAll(file)
-	if err == nil {
-		file.Close()
-
-		logsString = logsString + string(log)
-	}
-	//logsString = logsString + "</pre>"
-
-	logsString = strings.Replace(logsString, "\n", "<br>\n", -1)
-	//logsString = strings.Replace(logsString, "\t", "", -1)
-
-	file, _ = os.Open("resource/logs.html")
+	file, _ := os.Open("resource/logs.html")
 	body, err := ioutil.ReadAll(file)
 	if err == nil {
 		file.Close()
 
 		body = pageReplace(body, "$menu", addMenu())
-		body = pageReplace(body, "$logs", logsString)
+		//body = pageReplace(body, "$logs", logsString)
 		w.Write(body)
 		return
 	}
@@ -160,7 +145,6 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 	if exist == true {
 		if len(make) > 0 && make[0] == "defaultvnc" {
 			logAdd(MESS_INFO, "WEB Запрос vnc версии по-умолчанию")
-
 			if default_vnc != -1 {
 				buff, err := json.Marshal(array_vnc[default_vnc])
 				if err != nil {
@@ -170,10 +154,8 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 				w.Write(buff)
 				return
 			}
-
 		} else if len(make) > 0 && make[0] == "listvnc" {
 			logAdd(MESS_INFO, "WEB Запрос списка vnc")
-
 			buff, err := json.Marshal(array_vnc)
 			if err != nil {
 				logAdd(MESS_ERROR, "WEB Не получилось отправить список VNC")
@@ -181,7 +163,23 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 			}
 			w.Write(buff)
 			return
-
+		} else if len(make) > 0 && make[0] == "getlog" {
+			logAdd(MESS_INFO, "WEB Запрос log")
+			file, _ := os.Open(LOG_NAME)
+			log, err := ioutil.ReadAll(file)
+			if err == nil {
+				file.Close()
+			}
+			w.Write(log)
+			return
+		} else if len(make) > 0 && make[0] == "clearlog" {
+			logAdd(MESS_INFO, "WEB Запрос очистки log")
+			if logFile != nil {
+				logFile.Close()
+				logFile = nil
+			}
+			http.Redirect(w, r, "/logs", http.StatusTemporaryRedirect)
+			return
 		} else {
 			logAdd(MESS_ERROR, "WEB Нет такого действия")
 		}

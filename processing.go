@@ -399,9 +399,9 @@ func processStatus(message Message, conn *net.Conn, curClient *Client, id string
 		if contact != nil {
 			_, exist := clients.Load(cleanPid(contact.Pid))
 			if exist {
-				sendMessage(conn, TMESS_STATUS, message.Messages[0], "1")
+				sendMessage(conn, TMESS_STATUS, contact.Pid, "1")
 			} else {
-				sendMessage(conn, TMESS_STATUS, message.Messages[0], "0")
+				sendMessage(conn, TMESS_STATUS, contact.Pid, "0")
 			}
 		}
 	}

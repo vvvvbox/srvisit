@@ -30,12 +30,11 @@ func mainServer(){
 			break
 		}
 
-		defer conn.Close()
-
 		go pinger(&conn)
 		go mainHandler(&conn)
 	}
 
+	ln.Close()
 	logAdd(MESS_INFO, "mainServer остановился")
 }
 
@@ -134,10 +133,10 @@ func dataServer(){
 			break
 		}
 
-		defer conn.Close()
 		go dataHandler(&conn)
 	}
 
+	ln.Close()
 	logAdd(MESS_INFO, "dataServer остановился")
 }
 

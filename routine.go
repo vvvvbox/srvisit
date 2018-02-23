@@ -58,21 +58,21 @@ func getPid(serial string) string{
 	return r
 }
 
-func logAdd(tmess int, mess string){
-	if options.FDebug && typeLog >= tmess {
+func logAdd(TMessage int, Messages string){
+	if options.FDebug && typeLog >= TMessage {
 
 		if logFile == nil {
 			logFile, _ = os.Create(LOG_NAME)
 		}
 
 		//todo наверное стоит убрать, но пока меашет пинг в логах
-		if strings.Contains(mess, "buff (31): {\"TMessage\":18,\"Messages\":null}") || strings.Contains(mess, "{18 []}") {
+		if strings.Contains(Messages, "buff (31): {\"TMessage\":18,\"Messages\":null}") || strings.Contains(Messages, "{18 []}") {
 			return
 		}
 
-		logFile.Write([]byte(fmt.Sprint(time.Now().Format("02 Jan 2006 15:04:05.000000")) + "\t" + messLogText[tmess] + ":\t" + mess + "\n"))
+		logFile.Write([]byte(fmt.Sprint(time.Now().Format("02 Jan 2006 15:04:05.000000")) + "\t" + messLogText[TMessage] + ":\t" + Messages + "\n"))
 
-		fmt.Println(fmt.Sprint(time.Now().Format("02 Jan 2006 15:04:05.000000")) + "\t" + messLogText[tmess] + ":\t" + mess)
+		fmt.Println(fmt.Sprint(time.Now().Format("02 Jan 2006 15:04:05.000000")) + "\t" + messLogText[TMessage] + ":\t" + Messages)
 	}
 
 }
@@ -265,29 +265,29 @@ func loadProfiles(){
 	}
 }
 
-func saveOptions(){
-
-	b, err := json.Marshal(options)
-	if err == nil {
-		f, err := os.Create(FILE_OPTIONS + ".tmp")
-		if err == nil {
-			n, err := f.Write(b)
-			if n == len(b) && err == nil {
-				f.Close()
-
-				os.Remove(FILE_OPTIONS)
-				os.Rename(FILE_OPTIONS + ".tmp", FILE_OPTIONS)
-			} else {
-				f.Close()
-				logAdd(MESS_ERROR, "Не удалось сохранить настройки: " + fmt.Sprint(err))
-			}
-		} else {
-			logAdd(MESS_ERROR, "Не удалось сохранить настройки: " + fmt.Sprint(err))
-		}
-	} else {
-		logAdd(MESS_ERROR, "Не удалось сохранить настройки: " + fmt.Sprint(err))
-	}
-}
+//func saveOptions(){
+//
+//	b, err := json.Marshal(options)
+//	if err == nil {
+//		f, err := os.Create(FILE_OPTIONS + ".tmp")
+//		if err == nil {
+//			n, err := f.Write(b)
+//			if n == len(b) && err == nil {
+//				f.Close()
+//
+//				os.Remove(FILE_OPTIONS)
+//				os.Rename(FILE_OPTIONS + ".tmp", FILE_OPTIONS)
+//			} else {
+//				f.Close()
+//				logAdd(MESS_ERROR, "Не удалось сохранить настройки: " + fmt.Sprint(err))
+//			}
+//		} else {
+//			logAdd(MESS_ERROR, "Не удалось сохранить настройки: " + fmt.Sprint(err))
+//		}
+//	} else {
+//		logAdd(MESS_ERROR, "Не удалось сохранить настройки: " + fmt.Sprint(err))
+//	}
+//}
 
 func loadOptions(){
 
@@ -308,29 +308,29 @@ func loadOptions(){
 	}
 }
 
-func saveVNCList(){
-
-	b, err := json.Marshal(array_vnc)
-	if err == nil {
-		f, err := os.Create(FILE_VNCLIST + ".tmp")
-		if err == nil {
-			n, err := f.Write(b)
-			if n == len(b) && err == nil {
-				f.Close()
-
-				os.Remove(FILE_VNCLIST)
-				os.Rename(FILE_VNCLIST + ".tmp", FILE_VNCLIST)
-			} else {
-				f.Close()
-				logAdd(MESS_ERROR, "Не удалось сохранить список VNC: " + fmt.Sprint(err))
-			}
-		} else {
-			logAdd(MESS_ERROR, "Не удалось сохранить список VNC: "+fmt.Sprint(err))
-		}
-	} else {
-		logAdd(MESS_ERROR, "Не удалось сохранить список VNC: " + fmt.Sprint(err))
-	}
-}
+//func saveVNCList(){
+//
+//	b, err := json.Marshal(array_vnc)
+//	if err == nil {
+//		f, err := os.Create(FILE_VNCLIST + ".tmp")
+//		if err == nil {
+//			n, err := f.Write(b)
+//			if n == len(b) && err == nil {
+//				f.Close()
+//
+//				os.Remove(FILE_VNCLIST)
+//				os.Rename(FILE_VNCLIST + ".tmp", FILE_VNCLIST)
+//			} else {
+//				f.Close()
+//				logAdd(MESS_ERROR, "Не удалось сохранить список VNC: " + fmt.Sprint(err))
+//			}
+//		} else {
+//			logAdd(MESS_ERROR, "Не удалось сохранить список VNC: "+fmt.Sprint(err))
+//		}
+//	} else {
+//		logAdd(MESS_ERROR, "Не удалось сохранить список VNC: " + fmt.Sprint(err))
+//	}
+//}
 
 func loadVNCList(){
 
@@ -418,11 +418,11 @@ func checkStatuses(curClient *Client, first *Contact) {
 
 func getInvisibleEmail(email string) string{
 
-	len := len(email)
-	if len > 10 {
-		return email[:5] + "*****" + email[len - 5:]
+	length := len(email)
+	if length > 10 {
+		return email[:5] + "*****" + email[length - 5:]
 	} else {
-		return email[:1] + "*****" + email[len - 1:]
+		return email[:1] + "*****" + email[length - 1:]
 	}
 }
 
@@ -449,35 +449,4 @@ func swiftCounter() {
 func cleanPid(pid string) string {
 	//todo может потом стоит сюда добавить удаление и других символов
 	return strings.Replace(pid, ":", "", -1)
-}
-
-
-//следующие функции нужны только для отладки
-func printContact(node *Contact, tab int) {
-	var t string
-
-	for i := 0; i < tab; i++ {
-		t = t + "\t";
-	}
-
-	fmt.Println(t, "id:\t", node.Id)
-	fmt.Println(t, "type:\t", node.Type)
-	fmt.Println(t, "capt:\t", node.Caption)
-	fmt.Println(t, "pid:\t", node.Pid)
-	fmt.Println(t, "digt:\t", node.Digest)
-	fmt.Println(t, "salt:\t", node.Salt)
-	fmt.Println(t, "next:\t", node.Next)
-	fmt.Println(t, "inner:\t", node.Inner)
-	fmt.Println()
-}
-
-func printContacts(first *Contact, tab int) {
-
-	for first != nil {
-		printContact(first, tab);
-		if first.Inner != nil {
-			printContacts(first.Inner, tab + 1);
-		}
-		first = first.Next
-	}
 }

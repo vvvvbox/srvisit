@@ -30,7 +30,7 @@ func mainServer(){
 			break
 		}
 
-		go pinger(&conn)
+		go ping(&conn)
 		go mainHandler(&conn)
 	}
 
@@ -160,23 +160,23 @@ func dataHandler(conn *net.Conn) {
 		}
 
 		peers := value.(*dConn)
-		var npeer int
+		var numPeer int
 		if peers.pointer[0] == nil {
 			peers.pointer[0] = conn
-			npeer = 1
+			numPeer = 1
 		} else if peers.pointer[1] == nil {
 			peers.pointer[1] = conn
-			npeer = 0
+			numPeer = 0
 		}
 
-		var cwait = 0
-		for peers.pointer[npeer] == nil && cwait < WAIT_COUNT{
+		var cWait = 0
+		for peers.pointer[numPeer] == nil && cWait < WAIT_COUNT{
 			logAdd(MESS_INFO, id + " ожидаем пира для " + code)
 			time.Sleep(time.Millisecond * WAIT_IDLE)
-			cwait++
+			cWait++
 		}
 
-		if peers.pointer[npeer] == nil {
+		if peers.pointer[numPeer] == nil {
 			logAdd(MESS_ERROR, id + " превышено время ожидания")
 			channels.Delete(code)
 			break
@@ -188,29 +188,29 @@ func dataHandler(conn *net.Conn) {
 		var z []byte
 		z = make([]byte, options.SizeBuff)
 
-		var bytes uint64
+		var countBytes uint64
 
 		for {
 			n1, err1 := (*conn).Read(z)
 			if err1 != nil {
 				logAdd(MESS_ERROR, id + " " + fmt.Sprint(err1))
 			}
-			bytes = bytes + uint64(n1)
+			countBytes = countBytes + uint64(n1)
 
-			n2, err2 := (*peers.pointer[npeer]).Write(z[:n1])
+			n2, err2 := (*peers.pointer[numPeer]).Write(z[:n1])
 			if err2 != nil {
 				logAdd(MESS_ERROR, id + " "  + fmt.Sprint(err2))
 			}
-			bytes = bytes + uint64(n2)
+			countBytes = countBytes + uint64(n2)
 
 			if (err1 != nil && err1 != io.EOF) && err2 != nil || n1 == 0 || n2 == 0 {
 				logAdd(MESS_INFO, id + " соединение закрылось: " + fmt.Sprint(n1, n2))
-				(*peers.pointer[npeer]).Close()
+				(*peers.pointer[numPeer]).Close()
 				break
 			}
 		}
 
-		addCounter(bytes)
+		addCounter(countBytes)
 
 		logAdd(MESS_INFO, id + " поток завершается")
 		channels.Delete(code)
@@ -224,7 +224,7 @@ func dataHandler(conn *net.Conn) {
 
 
 
-func pinger(conn *net.Conn){
+func ping(conn *net.Conn){
 	success := true
 	for success{
 		time.Sleep(time.Second * WAIT_PING)

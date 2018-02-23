@@ -7,7 +7,7 @@ import (
 )
 
 const(
-	REVISIT_VERSION = 0.1
+	REVISIT_VERSION = "0.2"
 
 	//общие константы
 	CODE_LENGTH = 64 //длина code
@@ -65,6 +65,8 @@ var(
 		"65475",
 		"8090",
 		16000,
+		"admin",
+		"admin",
 		true,
 	}
 
@@ -168,6 +170,10 @@ type Options struct {
 
 	//размер буфера для операций с сокетами
 	SizeBuff 	int
+
+	//учетка для админ панели
+	AdminLogin	string
+	AdminPass	string
 
 	//очевидно что флаг для отладки
 	FDebug		bool

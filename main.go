@@ -2,17 +2,15 @@ package main
 
 import (
 	"runtime"
-	"strconv"
 	"fmt"
 )
 
 
 
 func main(){
-	logAdd(MESS_INFO, "Запускается сервер reVisit версии " + strconv.FormatFloat(REVISIT_VERSION, 'f', -1, 64))
+	logAdd(MESS_INFO, "Запускается сервер reVisit версии " + REVISIT_VERSION)
 
-	numcpu := runtime.NumCPU()
-	runtime.GOMAXPROCS(numcpu)
+	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	loadVNCList()
 	loadOptions()

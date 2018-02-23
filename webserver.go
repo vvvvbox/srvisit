@@ -50,6 +50,10 @@ func handleWelcome(w http.ResponseWriter, r *http.Request) {
 
 func handleResources(w http.ResponseWriter, r *http.Request) {
 
+	if !checkAuth(w, r) {
+		return
+	}
+
 	connectionsString := "<pre>"
 
 	var buf1 string
@@ -126,6 +130,10 @@ func handleStatistics(w http.ResponseWriter, r *http.Request) {
 
 func handleLogs(w http.ResponseWriter, r *http.Request) {
 
+	if !checkAuth(w, r) {
+		return
+	}
+
 	file, _ := os.Open("resource/logs.html")
 	body, err := ioutil.ReadAll(file)
 	if err == nil {
@@ -164,6 +172,11 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 			w.Write(buff)
 			return
 		} else if len(make) > 0 && make[0] == "getlog" {
+
+			if !checkAuth(w, r) {
+				return
+			}
+
 			logAdd(MESS_INFO, "WEB Запрос log")
 			file, _ := os.Open(LOG_NAME)
 			log, err := ioutil.ReadAll(file)
@@ -173,6 +186,11 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 			w.Write(log)
 			return
 		} else if len(make) > 0 && make[0] == "clearlog" {
+
+			if !checkAuth(w, r) {
+				return
+			}
+
 			logAdd(MESS_INFO, "WEB Запрос очистки log")
 			if logFile != nil {
 				logFile.Close()
@@ -194,6 +212,17 @@ func handleResource(w http.ResponseWriter, r *http.Request) {
 }
 
 
+func checkAuth(w http.ResponseWriter, r *http.Request) bool {
+
+	user, pass, ok := r.BasicAuth()
+	if !ok || user != options.AdminLogin || pass != options.AdminPass {
+		w.Header().Set("WWW-Authenticate", "Basic")
+		http.Error(w, "auth req", http.StatusUnauthorized)
+		return false
+	}
+
+	return true
+}
 
 func getCounterBytes() []string {
 

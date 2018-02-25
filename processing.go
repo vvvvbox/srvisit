@@ -505,7 +505,7 @@ func processManage(message Message, conn *net.Conn, curClient *Client, id string
 func processContactReverse(message Message, conn *net.Conn, curClient *Client, id string) {
 	logAdd(MESS_INFO, id + " пришел запрос на добавление в чужую учетку")
 
-	if len(message.Messages) < 4 {
+	if len(message.Messages) < 3 {
 		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
 		return
 	}
@@ -536,7 +536,7 @@ func processContactReverse(message Message, conn *net.Conn, curClient *Client, i
 
 			//отправим всем авторизованным об изменениях
 			curProfile.clients.Range(func (key interface {}, value interface {}) bool {
-				sendMessage(value.(*Client).Conn, TMESS_CONTACT, fmt.Sprint(i), "node", c.Caption, c.Pid, "", "")
+				sendMessage(value.(*Client).Conn, TMESS_CONTACT, fmt.Sprint(i), "node", c.Caption, c.Pid, "", "-1")
 				sendMessage(value.(*Client).Conn, TMESS_STATUS, fmt.Sprint(i), "1")
 				return true
 			})

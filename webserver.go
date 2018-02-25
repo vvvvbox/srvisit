@@ -194,7 +194,7 @@ func handleResource(w http.ResponseWriter, r *http.Request) {
 
 func handleAPI(w http.ResponseWriter, r *http.Request) {
 
-	actMake := string(r.URL.Query().Get("make"))
+	actMake := r.URL.Query().Get("make")
 
 	for _, m := range processingWeb {
 		if actMake == m.Make {

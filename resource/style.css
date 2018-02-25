@@ -340,3 +340,22 @@ a:hover{
 }
 
 /*-----------------*/
+.profile form {
+	width: 200px;
+	margin: auto;
+}
+
+.profile p {
+	margin: 5px 0px;
+	color: #333333;
+}
+
+.profile input {
+	width: 200px;
+}
+
+.profile input[type=submit] {
+	width: 100px;
+	margin-left: 112px;
+}
+/*-----------------*/

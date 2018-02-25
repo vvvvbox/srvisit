@@ -215,6 +215,7 @@ func processReg(message Message, conn *net.Conn, curClient *Client, id string) {
 		sendMessage(conn, TMESS_NOTIFICATION, "Учетная запись создана, Ваш пароль на почте!")
 		logAdd(MESS_INFO, id + " создали учетку")
 	} else {
+		//todo отправь дубль на почту
 		logAdd(MESS_INFO, id + " такая учетка уже существует")
 		sendMessage(conn, TMESS_NOTIFICATION, "Такая учетная запись уже существует!")
 	}
@@ -242,12 +243,6 @@ func processContact(message Message, conn *net.Conn, curClient *Client, id strin
 
 		if message.Messages[1] == "del" {
 			profile.Contacts = delContact(profile.Contacts, i) //удаляем ссылки на контакт
-
-			//если такой пид онлайн - ничего не делаем, потому что вдруг у нашего профиля несколько таких, не сильно страшно если будет избыточная посылка статусов
-			//client, exist := clients.Load(strings.Replace(message.Messages[3], ":", "", -1))
-			//if exist {
-			//	client.(*Client).profiles.Delete(profile.Email)
-			//}
 		} else {
 			c := getContact(profile.Contacts, i)
 
@@ -505,4 +500,51 @@ func processManage(message Message, conn *net.Conn, curClient *Client, id string
 		logAdd(MESS_ERROR, id + " ошибка преобразования идентификатора")
 		sendMessage(conn, TMESS_NOTIFICATION, "Ошибка преобразования идентификатора!")
 	}
+}
+
+func processContactReverse(message Message, conn *net.Conn, curClient *Client, id string) {
+	logAdd(MESS_INFO, id + " пришел запрос на добавление в чужую учетку")
+
+	if len(message.Messages) < 4 {
+		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
+		return
+	}
+
+	//Message[0] - login profile
+	//Message[1] - digest
+	//Message[2] - caption
+
+	value, exist := profiles.Load(message.Messages[0])
+	if exist {
+		curProfile := value.(*Profile)
+		if getSHA256(curProfile.Pass + curClient.Salt) == message.Messages[1] {
+			i := getNewId(curProfile.Contacts)
+
+			c := &Contact{}
+			c.Next = curProfile.Contacts //добавляем пока только в корень
+			curProfile.Contacts = c
+
+			c.Id = i
+			c.Type = "node"
+			c.Caption = message.Messages[2]
+			c.Pid = curClient.Pid
+			c.Digest = message.Messages[1]
+			c.Salt = curClient.Salt
+
+			//добавим этот профиль к авторизованному списку
+			curClient.profiles.Store(curProfile.Email, curProfile)
+
+			//отправим всем авторизованным об изменениях
+			curProfile.clients.Range(func (key interface {}, value interface {}) bool {
+				sendMessage(value.(*Client).Conn, TMESS_CONTACT, fmt.Sprint(i), "node", c.Caption, c.Pid, "", "")
+				sendMessage(value.(*Client).Conn, TMESS_STATUS, fmt.Sprint(i), "1")
+				return true
+			})
+
+			logAdd(MESS_INFO, id + " операция с контактом выполнена")
+			return
+		}
+	}
+
+	logAdd(MESS_ERROR, id + " не удалось добавить контакт в чужой профиль")
 }

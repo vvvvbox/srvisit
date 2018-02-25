@@ -4,10 +4,11 @@ import (
 	"net"
 	"sync"
 	"os"
+	"net/http"
 )
 
 const(
-	REVISIT_VERSION = "0.2"
+	REVISIT_VERSION = "0.3"
 
 	//общие константы
 	CODE_LENGTH = 64 //длина code
@@ -31,25 +32,26 @@ const(
 	MESS_FULL = 4
 
 	//виды сообщений
-	TMESS_DEAUTH = 0
-	TMESS_VERSION = 1
-	TMESS_AUTH = 2
-	TMESS_LOGIN = 3
-	TMESS_NOTIFICATION = 4
-	TMESS_REQUEST = 5
-	TMESS_CONNECT = 6
-	TMESS_DISCONNECT = 7
-	TMESS_REG = 8
+	TMESS_DEAUTH = 0				//деаутентификация()
+	TMESS_VERSION = 1				//запрос версии
+	TMESS_AUTH = 2					//аутентификация(генерация pid)
+	TMESS_LOGIN = 3					//вход в профиль
+	TMESS_NOTIFICATION = 4			//сообщение клиент
+	TMESS_REQUEST = 5				//запрос на подключение
+	TMESS_CONNECT = 6				//запрашиваем подключение у клиента
+	TMESS_DISCONNECT = 7			//сообщаем об отключении клиенту
+	TMESS_REG = 8					//регистрация профиля
 	TMESS_CONTACT = 9 				//создание, редактирование, удаление
-	TMESS_CONTACTS = 10
-	TMESS_LOGOUT = 11
-	TMESS_CONNECT_CONTACT = 12
-	TMESS_STATUSES = 13
-	TMESS_STATUS = 14
-	TMESS_INFO_CONTACT = 15
-	TMESS_INFO_ANSWER = 16
-	TMESS_MANAGE = 17
-	TMESS_PING = 18
+	TMESS_CONTACTS = 10				//запрос списка контактов
+	TMESS_LOGOUT = 11				//выход из профиля
+	TMESS_CONNECT_CONTACT = 12		//запрос подключения к конакту из профиля
+	TMESS_STATUSES = 13				//запрос всех статусов
+	TMESS_STATUS = 14				//запрос статуса
+	TMESS_INFO_CONTACT = 15			//запрос информации о клиенте
+	TMESS_INFO_ANSWER = 16			//ответ на запрос информации
+	TMESS_MANAGE = 17				//запрос на управление(перезагрузка, обновление, переустановка)
+	TMESS_PING = 18					//проверка состояния подключения
+	TMESS_CONTACT_REVERSE = 19		//добавление себя в чужой профиль
 
 )
 
@@ -71,7 +73,6 @@ var(
 	}
 
 	//считаем всякую бесполезную информацию или нет
-	//fCounter = true
 	counterData struct{
 		currentPos int
 		counterBytes [24]uint64
@@ -80,12 +81,17 @@ var(
 		mutex sync.Mutex
 	}
 
-	//меню веб интерфейса
-	menus = []itemMenu{
-		{"Логи", "/logs"},
-		{"Ресурсы", "/resources"},
-		{"Статистика", "/statistics"},
-		{"reVisit", "/"} }
+	//меню веб интерфейса админки
+	menuAdmin = []itemMenu{
+		{"Логи", "/admin/logs"},
+		{"Ресурсы", "/admin/resources"},
+		{"Статистика", "/admin/statistics"},
+		{"reVisit", "/admin"} }
+
+	//меню веб интерфейса профиля
+	menuProfile = []itemMenu{
+		{"Профиль", "/profile/my"},
+		{"reVisit", "/profile"} }
 
 	//максимальный уровень логов
 	typeLog = MESS_FULL
@@ -130,16 +136,31 @@ var(
 		{TMESS_INFO_CONTACT, processInfoContact},
 		{TMESS_INFO_ANSWER, processInfoAnswer},
 		{TMESS_MANAGE, processManage},
-		{TMESS_PING, processPing} }
+		{TMESS_PING, processPing},
+		{TMESS_CONTACT_REVERSE, processContactReverse} }
+
+	//функции для обработки web api
+	processingWeb = []ProcessingWeb{
+		{"defaultvnc", processApiDefaultVnc},
+		{"listvnc", processApiListVnc},
+		{"getlog", processApiGetLog},
+		{"clearlog", processApiClearLog},
+		{"profile_save", processApiProfileSave},
+		{"profile_get", processApiProfileGet} }
 
 	//список доступных vnc клиентов и выбранный по-умолчанию
-	default_vnc = -1
-	array_vnc []VNC
+	defaultVnc = 0
+	arrayVnc  []VNC
 )
 
 //double pointer
 type dConn struct {
 	pointer [2]*net.Conn
+}
+
+type ProcessingWeb struct {
+	Make string
+	Processing func(w http.ResponseWriter, r *http.Request)
 }
 
 type ProcessingMessage struct {
@@ -160,13 +181,13 @@ type Options struct {
 	PassSMTP   string
 
 	//реквизиты сервера
-	MainserverPort string
+	MainServerPort string
 
 	//реквизиты сервер
-	DataserverPort string
+	DataServerPort string
 
 	//реквизиты веб сервера
-	HttpserverPort string
+	HttpServerPort string
 
 	//размер буфера для операций с сокетами
 	SizeBuff 	int
@@ -240,6 +261,11 @@ type Profile struct {
 	Contacts *Contact
 
 	clients	sync.Map //клиенты которые авторизовались в этот профиль(используем для отправки им информации о статусе или изменений контактов)
+
+	//всякая информация
+	Capt	string
+	Tel		string
+	Logo	string
 }
 
 type Contact struct {

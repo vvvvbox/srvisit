@@ -339,9 +339,9 @@ func loadVNCList(){
 	if err == nil {
 		b, err := ioutil.ReadAll(f)
 		if err == nil {
-			err = json.Unmarshal(b, &array_vnc)
+			err = json.Unmarshal(b, &arrayVnc)
 			if err == nil {
-				default_vnc = 0
+				defaultVnc = 0
 				return
 			} else {
 				logAdd(MESS_ERROR, "Не получилось загрузить список VNC: " + fmt.Sprint(err))

@@ -17,7 +17,7 @@ import (
 func mainServer(){
 	logAdd(MESS_INFO, "mainServer запустился")
 
-	ln, err := net.Listen("tcp", ":" + options.MainserverPort)
+	ln, err := net.Listen("tcp", ":" + options.MainServerPort)
 	if err != nil {
 		logAdd(MESS_ERROR, "mainServer не смог занять порт")
 		os.Exit(1)
@@ -120,7 +120,7 @@ func mainHandler(conn *net.Conn) {
 func dataServer(){
 	logAdd(MESS_INFO, "dataServer запустился")
 
-	ln, err := net.Listen("tcp", ":" + options.DataserverPort)
+	ln, err := net.Listen("tcp", ":" + options.DataServerPort)
 	if err != nil {
 		logAdd(MESS_ERROR, "dataServer не смог занять порт")
 		os.Exit(1)

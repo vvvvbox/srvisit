@@ -8,9 +8,21 @@ import (
 	"net/url"
 	"strconv"
 	"time"
+	"strings"
 )
 
 
+
+func processVersion(message Message, conn *net.Conn, curClient *Client, id string) {
+	logAdd(MESS_INFO, id + " пришла информация о версии")
+
+	if len(message.Messages) != 1 {
+		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
+		return
+	}
+
+	curClient.Version = message.Messages[0]
+}
 
 func processAuth(message Message, conn *net.Conn, curClient *Client, id string) {
 	logAdd(MESS_INFO, id + " пришла авторизация")
@@ -170,7 +182,8 @@ func processLogin(message Message, conn *net.Conn, curClient *Client, id string)
 		return
 	}
 
-	profile, ok := profiles.Load(message.Messages[0])
+	email := strings.ToLower(message.Messages[0])
+	profile, ok := profiles.Load(email)
 	if ok == true {
 		if message.Messages[1] == getSHA256(profile.(*Profile).Pass + curClient.Salt) {
 			logAdd(MESS_INFO, id + " авторизация профиля пройдена")
@@ -200,7 +213,7 @@ func processReg(message Message, conn *net.Conn, curClient *Client, id string) {
 	_, ok := profiles.Load(message.Messages[0])
 	if ok == false {
 		newProfile := Profile{}
-		newProfile.Email = message.Messages[0]
+		newProfile.Email = strings.ToLower(message.Messages[0])
 		newProfile.Pass = randomString(PASSWORD_LENGTH)
 
 		msg := []byte("Subject: Information from reVisit\r\n\r\nYour password is " + newProfile.Pass + "\r\n")

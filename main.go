@@ -21,5 +21,10 @@ func main(){
 	go mainServer()
 	go dataServer()
 
-	fmt.Scanln()
+	var r string
+	for r != "quit" {
+		fmt.Scanln(&r)
+	}
+
+	logAdd(MESS_INFO, "Завершили работу")
 }

@@ -265,29 +265,29 @@ func loadProfiles(){
 	}
 }
 
-//func saveOptions(){
-//
-//	b, err := json.Marshal(options)
-//	if err == nil {
-//		f, err := os.Create(FILE_OPTIONS + ".tmp")
-//		if err == nil {
-//			n, err := f.Write(b)
-//			if n == len(b) && err == nil {
-//				f.Close()
-//
-//				os.Remove(FILE_OPTIONS)
-//				os.Rename(FILE_OPTIONS + ".tmp", FILE_OPTIONS)
-//			} else {
-//				f.Close()
-//				logAdd(MESS_ERROR, "Не удалось сохранить настройки: " + fmt.Sprint(err))
-//			}
-//		} else {
-//			logAdd(MESS_ERROR, "Не удалось сохранить настройки: " + fmt.Sprint(err))
-//		}
-//	} else {
-//		logAdd(MESS_ERROR, "Не удалось сохранить настройки: " + fmt.Sprint(err))
-//	}
-//}
+func saveOptions(){
+
+	b, err := json.Marshal(options)
+	if err == nil {
+		f, err := os.Create(FILE_OPTIONS + ".tmp")
+		if err == nil {
+			n, err := f.Write(b)
+			if n == len(b) && err == nil {
+				f.Close()
+
+				os.Remove(FILE_OPTIONS)
+				os.Rename(FILE_OPTIONS + ".tmp", FILE_OPTIONS)
+			} else {
+				f.Close()
+				logAdd(MESS_ERROR, "Не удалось сохранить настройки: " + fmt.Sprint(err))
+			}
+		} else {
+			logAdd(MESS_ERROR, "Не удалось сохранить настройки: " + fmt.Sprint(err))
+		}
+	} else {
+		logAdd(MESS_ERROR, "Не удалось сохранить настройки: " + fmt.Sprint(err))
+	}
+}
 
 func loadOptions(){
 

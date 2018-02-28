@@ -84,14 +84,15 @@ var(
 	//меню веб интерфейса админки
 	menuAdmin = []itemMenu{
 		{"Логи", "/admin/logs"},
+		{"Настройки", "/admin/options"},
 		{"Ресурсы", "/admin/resources"},
 		{"Статистика", "/admin/statistics"},
-		{"reVisit", "/admin"} }
+		{"reVisit", "/resource/reVisit.exe"} }
 
 	//меню веб интерфейса профиля
 	menuProfile = []itemMenu{
 		{"Профиль", "/profile/my"},
-		{"reVisit", "/profile"} }
+		{"reVisit", "/resource/reVisit.exe"} }
 
 	//максимальный уровень логов
 	typeLog = MESS_FULL
@@ -119,7 +120,7 @@ var(
 	//функции для обработки сообщений
 	processing = []ProcessingMessage{
 		{TMESS_DEAUTH, nil},
-		{TMESS_VERSION, nil},
+		{TMESS_VERSION, processVersion},
 		{TMESS_AUTH, processAuth},
 		{TMESS_LOGIN, processLogin},
 		{TMESS_NOTIFICATION, processNotification},
@@ -146,7 +147,8 @@ var(
 		{"getlog", processApiGetLog},
 		{"clearlog", processApiClearLog},
 		{"profile_save", processApiProfileSave},
-		{"profile_get", processApiProfileGet} }
+		{"profile_get", processApiProfileGet},
+		{"save_options", processApiSaveOptions} }
 
 	//список доступных vnc клиентов и выбранный по-умолчанию
 	defaultVnc = 0

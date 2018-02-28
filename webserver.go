@@ -18,6 +18,7 @@ func httpServer(){
 	http.HandleFunc("/admin/welcome", handleWelcome)
 	http.HandleFunc("/admin/resources", handleResources)
 	http.HandleFunc("/admin/statistics", handleStatistics)
+	http.HandleFunc("/admin/options", handleOptions)
 	http.HandleFunc("/admin/logs", handleLogs)
 
 	http.Handle("/", http.RedirectHandler("/profile/welcome", 301))
@@ -101,13 +102,13 @@ func handleResources(w http.ResponseWriter, r *http.Request) {
 		if value.(*Client).Profile == nil {
 			buf1 = "no auth"
 		} else {
-			buf1 = getInvisibleEmail(value.(*Client).Profile.Email)
+			buf1 = value.(*Client).Profile.Email
 		}
 
 		connectionsString = connectionsString + fmt.Sprintln(key.(string), value.(*Client).Serial, value.(*Client).Version, (*value.(*Client).Conn).RemoteAddr(), buf1)
 
 		value.(*Client).profiles.Range(func (key interface {}, value interface {}) bool {
-			connectionsString = connectionsString + fmt.Sprintln("\t ->", getInvisibleEmail(key.(string)))
+			connectionsString = connectionsString + fmt.Sprintln("\t ->", key.(string))
 			return true
 		})
 
@@ -123,7 +124,7 @@ func handleResources(w http.ResponseWriter, r *http.Request) {
 	connectionsString = connectionsString + fmt.Sprintln("\n\nпрофили:")
 	profiles.Range(func (key interface {}, value interface {}) bool {
 
-		connectionsString = connectionsString + fmt.Sprintln(getInvisibleEmail(key.(string)) )//(*value.(*Profile)).Pass)
+		connectionsString = connectionsString + fmt.Sprintln(key.(string) )//(*value.(*Profile)).Pass)
 
 		value.(*Profile).clients.Range(func (key interface {}, value interface {}) bool {
 			connectionsString = connectionsString + fmt.Sprintln("\t", "<- " + key.(string) )
@@ -149,6 +150,10 @@ func handleResources(w http.ResponseWriter, r *http.Request) {
 
 func handleStatistics(w http.ResponseWriter, r *http.Request) {
 
+	if !checkAdminAuth(w, r) {
+		return
+	}
+
 	file, _ := os.Open("resource/admin/statistics.html")
 	body, err := ioutil.ReadAll(file)
 	if err == nil {
@@ -160,6 +165,25 @@ func handleStatistics(w http.ResponseWriter, r *http.Request) {
 		body = pageReplace(body, "$values1", charts[1])
 		body = pageReplace(body, "$values2", charts[2])
 
+		w.Write(body)
+		return
+	}
+
+}
+
+func handleOptions(w http.ResponseWriter, r *http.Request) {
+
+	if !checkAdminAuth(w, r) {
+		return
+	}
+
+	file, _ := os.Open("resource/admin/options.html")
+	body, err := ioutil.ReadAll(file)
+	if err == nil {
+		file.Close()
+
+		body = pageReplace(body, "$menu", addMenuAdmin())
+		//body = pageReplace(body, "$logs", logsString)
 		w.Write(body)
 		return
 	}
@@ -266,7 +290,7 @@ func processApiClearLog(w http.ResponseWriter, r *http.Request) {
 		logFile.Close()
 		logFile = nil
 	}
-	http.Redirect(w, r, "/logs", http.StatusTemporaryRedirect)
+	http.Redirect(w, r, "/admin/logs", http.StatusTemporaryRedirect)
 }
 
 func processApiProfileSave(w http.ResponseWriter, r *http.Request) {
@@ -313,6 +337,18 @@ func processApiProfileGet(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "", http.StatusBadRequest)
 }
 
+func processApiSaveOptions(w http.ResponseWriter, r *http.Request) {
+	if !checkAdminAuth(w, r) {
+		return
+	}
+
+	logAdd(MESS_INFO, "WEB Запрос сохранения опций")
+
+	saveOptions()
+
+	handleOptions(w, r)
+}
+
 
 
 //общие функции
@@ -331,7 +367,7 @@ func checkProfileAuth(w http.ResponseWriter, r *http.Request) *Profile {
 		}
 	}
 
-	logAdd(MESS_ERROR, "Аутентификация провалилась " + r.RemoteAddr)
+	logAdd(MESS_ERROR, "Аутентификация профиля провалилась " + r.RemoteAddr)
 	w.Header().Set("WWW-Authenticate", "Basic")
 	http.Error(w, "auth req", http.StatusUnauthorized)
 	return nil
@@ -346,6 +382,7 @@ func checkAdminAuth(w http.ResponseWriter, r *http.Request) bool {
 		}
 	}
 
+	logAdd(MESS_ERROR, "Аутентификация админки провалилась " + r.RemoteAddr)
 	w.Header().Set("WWW-Authenticate", "Basic")
 	http.Error(w, "auth req", http.StatusUnauthorized)
 	return false

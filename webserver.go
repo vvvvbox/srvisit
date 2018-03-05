@@ -96,7 +96,12 @@ func handleResources(w http.ResponseWriter, r *http.Request) {
 	connectionsString := "<pre>"
 
 	var buf1 string
-	connectionsString = connectionsString + fmt.Sprintln("клиенты:")
+	connectionsString = connectionsString + fmt.Sprintln("\n\nагенты:")
+	for _, agent := range neighbours {
+		connectionsString = connectionsString + fmt.Sprintln(agent.Id, agent.Ip, agent.Name, agent.LastVisible)
+	}
+
+	connectionsString = connectionsString + fmt.Sprintln("\n\nклиенты:")
 	clients.Range(func (key interface {}, value interface {}) bool {
 
 		if value.(*Client).Profile == nil {

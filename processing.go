@@ -124,7 +124,7 @@ func processConnectRaw(message Message, conn *net.Conn, curClient *Client, id st
 			}
 		}
 
-		channels.Delete(code)
+		disconnectPeers(code)
 		logAdd(MESS_ERROR, id + " что-то пошло не так")
 
 	} else {
@@ -154,21 +154,7 @@ func processDisconnect(message Message, conn *net.Conn, curClient *Client, id st
 
 	code := message.Messages[0]
 
-	//pair, exists := channels[code]
-	value, exists := channels.Load(code)
-	if exists {
-		pair := value.(*dConn)
-		//delete(channels, code)
-		channels.Delete(code)
-
-		if pair.pointer[0] != nil {
-			(*pair.pointer[0]).Close()
-		}
-		if pair.pointer[1] != nil {
-			(*pair.pointer[1]).Close()
-		}
-	}
-
+	disconnectPeers(code)
 }
 
 func processPing(message Message, conn *net.Conn, curClient *Client, id string) {

@@ -5,6 +5,7 @@ import (
 	"sync"
 	"os"
 	"net/http"
+	"time"
 )
 
 const(
@@ -17,6 +18,10 @@ const(
 	FILE_OPTIONS = "options.cfg"
 	FILE_VNCLIST = "vnc.list"
 	LOG_NAME = "log.txt"
+	PORT_FINDER_NEIGHBOURS = 1231
+	MAX_LEN_ID_NEIGHBOUR = 8
+	WAIT_IDLE_FINDER = 5
+	WAIT_IDLE_CLEANER = 11
 
 	//константы ожидания
 	WAIT_COUNT = 15
@@ -109,6 +114,10 @@ var(
 	//карта учеток
 	profiles sync.Map
 
+	//агенты обработки данных
+	neighbours	map[string]*Neighbour
+	neighboursM sync.Mutex
+
 	//текстовая расшифровка сообщений для логов
 	messLogText = []string{
 		"BLANK",
@@ -158,6 +167,13 @@ var(
 //double pointer
 type dConn struct {
 	pointer [2]*net.Conn
+}
+
+type Neighbour struct {
+	Id          string
+	Name		string
+	Ip          string
+	LastVisible time.Time
 }
 
 type ProcessingWeb struct {

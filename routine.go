@@ -450,3 +450,10 @@ func cleanPid(pid string) string {
 	//todo может потом стоит сюда добавить удаление и других символов
 	return strings.Replace(pid, ":", "", -1)
 }
+
+func checkError(err error) {
+	if err != nil {
+		panic(err)
+		os.Exit(1)
+	}
+}

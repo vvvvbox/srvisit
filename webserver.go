@@ -98,7 +98,7 @@ func handleResources(w http.ResponseWriter, r *http.Request) {
 	var buf1 string
 	connectionsString = connectionsString + fmt.Sprintln("\n\nагенты:")
 	for _, agent := range neighbours {
-		connectionsString = connectionsString + fmt.Sprintln(agent.Id, agent.Ip, agent.Name, agent.LastVisible)
+		connectionsString = connectionsString + fmt.Sprintln(agent.Id, agent.Ip, "\t", agent.Name)
 	}
 
 	connectionsString = connectionsString + fmt.Sprintln("\n\nклиенты:")

@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"bytes"
 	"encoding/json"
-	"io"
+	"strings"
 )
 
 
@@ -189,14 +189,11 @@ func dataHandler(conn *net.Conn) {
 		z = make([]byte, options.SizeBuff)
 
 		var countBytes uint64
+		var n1, n2 int
+		var err1, err2 error
 
 		for {
-			n1, err1 := (*conn).Read(z)
-			if err1 != nil {
-				logAdd(MESS_ERROR, id + " " + fmt.Sprint(err1))
-				time.Sleep(time.Millisecond * WAIT_AFTER_CONNECT)
-			}
-			countBytes = countBytes + uint64(n1)
+			n1, err1 = (*conn).Read(z)
 
 			if peers.pointer[numPeer] == nil {
 				logAdd(MESS_INFO, id + " потеряли пир")
@@ -204,16 +201,18 @@ func dataHandler(conn *net.Conn) {
 				break
 			}
 
-			n2, err2 := (*peers.pointer[numPeer]).Write(z[:n1])
-			if err2 != nil {
-				logAdd(MESS_ERROR, id + " "  + fmt.Sprint(err2))
-				time.Sleep(time.Millisecond * WAIT_AFTER_CONNECT)
-			}
-			countBytes = countBytes + uint64(n2)
+			n2, err2 = (*peers.pointer[numPeer]).Write(z[:n1])
 
-			if (err1 != nil && err1 != io.EOF) && err2 != nil || n1 == 0 || n2 == 0 {
+			countBytes = countBytes + uint64(n1 + n2)
+
+			if err1 != nil || err2 != nil || n1 == 0 || n2 == 0 {
 				logAdd(MESS_INFO, id + " соединение закрылось: " + fmt.Sprint(n1, n2))
-				(*peers.pointer[numPeer]).Close()
+				logAdd(MESS_INFO, id + " err1: "  + fmt.Sprint(err1))
+				logAdd(MESS_INFO, id + " err2: "  + fmt.Sprint(err2))
+				time.Sleep(time.Millisecond * WAIT_AFTER_CONNECT)
+				if peers.pointer[numPeer] != nil {
+					(*peers.pointer[numPeer]).Close()
+				}
 				break
 			}
 		}
@@ -247,124 +246,126 @@ func disconnectPeers(code string) {
 
 
 
-//func finderNeighbours() {
-//
-//	neighbours = make(map[string]*Neighbour)
-//
-//	//там чистим не активные агенты
-//	go cleanerNeighbours()
-//
-//	//здесь мы ждём подключения
-//	addr, err := net.ResolveUDPAddr("udp", ":" + fmt.Sprint(PORT_FINDER_NEIGHBOURS))
-//	checkError(err)
-//
-//	conn, err := net.ListenUDP("udp", addr)
-//	checkError(err)
-//
-//	go agentFinderNeighbours(conn)
-//
-//	reader := bufio.NewReader(conn)
-//	for {
-//		line, _, err := reader.ReadLine()
-//		if err != nil {
-//			logAdd(MESS_ERROR, "Ошибка чтения сообщения от агента: " + fmt.Sprint(err))
-//			fmt.Println(err)
-//			continue
-//		}
-//
-//		n, ip, id := parseAnswerAgent(string(line))
-//
-//		neighbour := neighbours[ip]
-//		if neighbour == nil {
-//			var newNeigbour Neighbour
-//			newNeigbour.Name = n
-//			newNeigbour.Id = id
-//			newNeigbour.Ip = ip
-//			newNeigbour.LastVisible = time.Now()
-//			neighboursM.Lock()
-//			neighbours[ip] = &newNeigbour
-//			neighboursM.Unlock()
-//			logAdd(MESS_INFO, "Появился новый агент " + ip + " " + id + " " + n)
-//		} else {
-//			neighbour.LastVisible = time.Now()
-//			logAdd(MESS_DETAIL, "Обновили состояние агента " + ip)
-//		}
-//	}
-//}
+func finderNeighbours() {
 
-//func agentFinderNeighbours(conn *net.UDPConn) {
-//
-//	hostname, _ := os.Hostname()
-//	id := randomString(MAX_LEN_ID_NEIGHBOUR)
-//
-//	ip := getMyIp()
-//
-//	myString := hostname + ":" + ip + ":" + fmt.Sprint(id) + "\n"
-//
-//	//периодически делаем рассылку о своём существовании
-//	for {
-//		adr, err := net.ResolveUDPAddr("udp", fmt.Sprint(net.IPv4bcast) + ":" + fmt.Sprint(PORT_FINDER_NEIGHBOURS))
-//		checkError(err)
-//
-//		n, err := (*conn).WriteToUDP([]byte(myString), adr)
-//		checkError(err)
-//
-//		if n <= 0 {
-//			logAdd(MESS_ERROR, "Не получилось отправить агенту сообщение для соседей")
-//		}
-//
-//		time.Sleep(time.Second * WAIT_IDLE_FINDER)
-//	}
-//}
+	neighbours = make(map[string]*Neighbour)
 
-//func parseAnswerAgent(message string) (string, string, string){
-//	p1 := strings.Index(message, ":")
-//	p2 := strings.LastIndex(message, ":")
-//
-//	if p1 == p2 {
-//		logAdd(MESS_ERROR, "Ошибка разбора сообщения от агента")
-//		return "", "", ""
-//	}
-//
-//	return message[:p1], message[p1 + 1:p2], message[p2 + 1:]
-//}
+	//там чистим не активные агенты
+	go cleanerNeighbours()
 
-//func cleanerNeighbours() {
-//	for {
-//		for _, agent := range neighbours {
-//			if agent.LastVisible.Add(time.Second * WAIT_IDLE_CLEANER).Before(time.Now()) {
-//				neighboursM.Lock()
-//				delete(neighbours, agent.Ip)
-//				neighboursM.Unlock()
-//			}
-//		}
-//
-//		time.Sleep(time.Second * WAIT_IDLE_CLEANER)
-//	}
-//}
+	//здесь мы ждём подключения
+	addr, err := net.ResolveUDPAddr("udp", ":" + fmt.Sprint(PORT_FINDER_NEIGHBOURS))
+	checkError(err)
 
-//func getMyIp() string {
-//	int, err := net.Interfaces()
-//	checkError(err)
-//
-//	ip := net.IPv4zero.String()
-//	for _, i := range int {
-//		if (i.Flags&net.FlagLoopback == 0) && (i.Flags&net.FlagPointToPoint == 0) && (i.Flags&net.FlagUp == 1) {
-//			z, err := i.Addrs()
-//			checkError(err)
-//
-//			for _, j := range z {
-//				x, _, _ := net.ParseCIDR(j.String())
-//				if x.To4() != nil {
-//					ip = x.To4().String()
-//					return ip
-//				}
-//			}
-//		}
-//	}
-//
-//	return ip
-//}
+	conn, err := net.ListenUDP("udp", addr)
+	checkError(err)
+
+	go agentFinderNeighbours(conn)
+
+	reader := bufio.NewReader(conn)
+	for {
+		line, _, err := reader.ReadLine()
+		if err != nil {
+			logAdd(MESS_ERROR, "Ошибка чтения сообщения от агента: " + fmt.Sprint(err))
+			fmt.Println(err)
+			continue
+		}
+
+		n, ip, id := parseAnswerAgent(string(line))
+
+		neighbour := neighbours[ip]
+		if neighbour == nil {
+			var newNeighbour Neighbour
+			newNeighbour.Name = n
+			newNeighbour.Id = id
+			newNeighbour.Ip = ip
+			newNeighbour.LastVisible = time.Now()
+			neighboursM.Lock()
+			neighbours[ip] = &newNeighbour
+			neighboursM.Unlock()
+			logAdd(MESS_INFO, "Появился новый агент " + ip + " " + id + " " + n)
+		} else {
+			neighbour.LastVisible = time.Now()
+			//logAdd(MESS_DETAIL, "Обновили состояние агента " + ip)
+		}
+	}
+}
+
+func agentFinderNeighbours(conn *net.UDPConn) {
+
+	hostname, _ := os.Hostname()
+	id := randomString(MAX_LEN_ID_NEIGHBOUR)
+
+	ip := getMyIp()
+
+	myString := hostname + ":" + ip + ":" + fmt.Sprint(id) + "\n"
+
+	//периодически делаем рассылку о своём существовании
+	for {
+		adr, err := net.ResolveUDPAddr("udp", fmt.Sprint(net.IPv4bcast) + ":" + fmt.Sprint(PORT_FINDER_NEIGHBOURS))
+		checkError(err)
+
+		n, err := (*conn).WriteToUDP([]byte(myString), adr)
+		checkError(err)
+
+		if n <= 0 {
+			logAdd(MESS_ERROR, "Не получилось отправить агенту сообщение для соседей")
+		}
+
+		time.Sleep(time.Second * WAIT_IDLE_FINDER)
+	}
+}
+
+func parseAnswerAgent(message string) (string, string, string){
+	p1 := strings.Index(message, ":")
+	p2 := strings.LastIndex(message, ":")
+
+	if p1 == p2 {
+		logAdd(MESS_ERROR, "Ошибка разбора сообщения от агента")
+		return "", "", ""
+	}
+
+	return message[:p1], message[p1 + 1:p2], message[p2 + 1:]
+}
+
+func cleanerNeighbours() {
+	for {
+		for _, agent := range neighbours {
+			if agent.LastVisible.Add(time.Second * WAIT_IDLE_CLEANER).Before(time.Now()) {
+				neighboursM.Lock()
+				delete(neighbours, agent.Ip)
+				neighboursM.Unlock()
+				logAdd(MESS_INFO, "Удалили устаревшего агента " + agent.Ip + " " + agent.Id + " " + agent.Name)
+			}
+		}
+
+		time.Sleep(time.Second * WAIT_IDLE_CLEANER)
+	}
+}
+
+func getMyIp() string {
+	int, err := net.Interfaces()
+	checkError(err)
+
+	ip := net.IPv4zero.String()
+	for _, i := range int {
+		if (i.Flags&net.FlagLoopback == 0) && (i.Flags&net.FlagPointToPoint == 0) && (i.Flags&net.FlagUp == 1) {
+			z, err := i.Addrs()
+			checkError(err)
+
+			for _, j := range z {
+				x, _, _ := net.ParseCIDR(j.String())
+
+				if x.IsGlobalUnicast() && x.To4() != nil {
+					ip = x.To4().String()
+					return ip
+				}
+			}
+		}
+	}
+
+	return ip
+}
 
 
 

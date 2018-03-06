@@ -5,3 +5,4 @@ profiles.list
 options.cfg
 resource/vnc/*
 log.txt
+counters.json

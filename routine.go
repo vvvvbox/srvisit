@@ -266,7 +266,6 @@ func loadProfiles(){
 }
 
 func saveOptions(){
-
 	b, err := json.Marshal(options)
 	if err == nil {
 		f, err := os.Create(FILE_OPTIONS + ".tmp")
@@ -290,7 +289,6 @@ func saveOptions(){
 }
 
 func loadOptions(){
-
 	f, err := os.Open(FILE_OPTIONS)
 	defer f.Close()
 	if err == nil {
@@ -426,23 +424,89 @@ func getInvisibleEmail(email string) string{
 	}
 }
 
+func saveCounters() {
+	b, err := json.Marshal(counterData)
+	if err == nil {
+		f, err := os.Create(FILE_COUNTERS)
+		if err == nil {
+			n, err := f.Write(b)
+			if n != len(b) || err != nil {
+				logAdd(MESS_ERROR, "Не удалось сохранить счетчики: " + fmt.Sprint(err))
+			}
+			f.Close()
+		} else {
+			logAdd(MESS_ERROR, "Не удалось сохранить счетчики: " + fmt.Sprint(err))
+		}
+	} else {
+		logAdd(MESS_ERROR, "Не удалось сохранить счетчики: " + fmt.Sprint(err))
+	}
+}
+
+func loadCounters(){
+	f, err := os.Open(FILE_COUNTERS)
+	defer f.Close()
+	if err == nil {
+		b, err := ioutil.ReadAll(f)
+		if err == nil {
+			err = json.Unmarshal(b, &counterData)
+			if err != nil {
+				logAdd(MESS_ERROR, "Не получилось загрузить счетчики: " + fmt.Sprint(err))
+			}
+		} else {
+			logAdd(MESS_ERROR, "Не получилось загрузить счетчики: " + fmt.Sprint(err))
+		}
+	} else {
+		logAdd(MESS_ERROR, "Не получилось загрузить счетчики: " + fmt.Sprint(err))
+	}
+}
+
 func addCounter(bytes uint64) {
 	counterData.mutex.Lock()
 	defer counterData.mutex.Unlock()
 
-	counterData.counterBytes[counterData.currentPos] = counterData.counterBytes[counterData.currentPos] + bytes
-	counterData.counterConnect[counterData.currentPos] = counterData.counterConnect[counterData.currentPos] + 1
+	counterData.CounterBytes[int(counterData.currentPos.Hour())] = counterData.CounterBytes[int(counterData.currentPos.Hour())] + bytes
+	counterData.CounterConnections[int(counterData.currentPos.Hour())] = counterData.CounterConnections[int(counterData.currentPos.Hour())] + 1
+
+	counterData.CounterDayWeekBytes[int(counterData.currentPos.Weekday())] = counterData.CounterDayWeekBytes[int(counterData.currentPos.Weekday())] + bytes
+	counterData.CounterDayWeekConnections[int(counterData.currentPos.Weekday())] = counterData.CounterDayWeekConnections[int(counterData.currentPos.Weekday())] + 1
+
+	counterData.CounterDayBytes[int(counterData.currentPos.Day())] = counterData.CounterDayBytes[int(counterData.currentPos.Day())] + bytes
+	counterData.CounterDayConnections[int(counterData.currentPos.Day())] = counterData.CounterDayConnections[int(counterData.currentPos.Day())] + 1
+
+	counterData.CounterDayYearBytes[int(counterData.currentPos.YearDay())] = counterData.CounterDayYearBytes[int(counterData.currentPos.YearDay())] + bytes
+	counterData.CounterDayYearConnections[int(counterData.currentPos.YearDay())] = counterData.CounterDayYearConnections[int(counterData.currentPos.YearDay())] + 1
+
+	counterData.CounterMonthBytes[int(counterData.currentPos.Month())] = counterData.CounterMonthBytes[int(counterData.currentPos.Month())] + bytes
+	counterData.CounterMonthConnections[int(counterData.currentPos.Month())] = counterData.CounterMonthConnections[int(counterData.currentPos.Month())] + 1
 }
 
 func swiftCounter() {
 	counterData.mutex.Lock()
 	defer counterData.mutex.Unlock()
 
-	if time.Now().Hour() != counterData.currentPos {
-		counterData.currentPos = time.Now().Hour()
+	if time.Now().Hour() != counterData.currentPos.Hour() {
+		now := time.Now()
+		counterData.CounterBytes[time.Now().Hour()] = 0
+		counterData.CounterConnections[time.Now().Hour()] = 0
 
-		counterData.counterBytes[counterData.currentPos] = 0
-		counterData.counterConnect[counterData.currentPos] = 0
+		if time.Now().Day() != counterData.currentPos.Day(){
+			counterData.CounterDayWeekBytes[int(time.Now().Weekday())] = 0
+			counterData.CounterDayWeekConnections[int(time.Now().Weekday())] = 0
+
+			counterData.CounterDayBytes[int(time.Now().Day())] = 0
+			counterData.CounterDayConnections[int(time.Now().Day())] = 0
+
+			counterData.CounterDayYearBytes[int(time.Now().YearDay())] = 0
+			counterData.CounterDayYearConnections[int(time.Now().YearDay())] = 0
+
+			if time.Now().Month() != counterData.currentPos.Month() {
+				counterData.CounterMonthBytes[int(time.Now().Month())] = 0
+				counterData.CounterMonthConnections[int(time.Now().Month())] = 0
+			}
+		}
+
+		saveCounters()
+		counterData.currentPos = now
 	}
 }
 

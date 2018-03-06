@@ -9,13 +9,14 @@ import (
 )
 
 const(
-	REVISIT_VERSION = "0.3"
+	REVISIT_VERSION = "0.4"
 
 	//общие константы
 	CODE_LENGTH = 64 //длина code
 	PASSWORD_LENGTH = 14
 	FILE_PROFILES = "profiles.list"
 	FILE_OPTIONS = "options.cfg"
+	FILE_COUNTERS = "counters.json"
 	FILE_VNCLIST = "vnc.list"
 	LOG_NAME = "log.txt"
 	PORT_FINDER_NEIGHBOURS = 1231
@@ -79,9 +80,22 @@ var(
 
 	//считаем всякую бесполезную информацию или нет
 	counterData struct{
-		currentPos int
-		counterBytes [24]uint64
-		counterConnect [24]uint64
+		currentPos time.Time
+
+		CounterBytes       [24]uint64
+		CounterConnections [24]uint64
+
+		CounterDayWeekBytes       [7]uint64
+		CounterDayWeekConnections [7]uint64
+
+		CounterDayBytes       [31]uint64
+		CounterDayConnections [31]uint64
+
+		CounterDayYearBytes       [365]uint64
+		CounterDayYearConnections [365]uint64
+
+		CounterMonthBytes       [12]uint64
+		CounterMonthConnections [12]uint64
 
 		mutex sync.Mutex
 	}

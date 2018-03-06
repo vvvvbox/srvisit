@@ -165,10 +165,31 @@ func handleStatistics(w http.ResponseWriter, r *http.Request) {
 		file.Close()
 
 		body = pageReplace(body, "$menu", addMenuAdmin())
-		charts :=  getCounterBytes()
-		body = pageReplace(body, "$headers", charts[0])
-		body = pageReplace(body, "$values1", charts[1])
-		body = pageReplace(body, "$values2", charts[2])
+
+		charts := getCounterHour()
+		body = pageReplace(body, "$headers01", charts[0]) //по часам
+		body = pageReplace(body, "$values01", charts[1])
+		body = pageReplace(body, "$values02", charts[2])
+
+		charts = getCounterDayWeek()
+		body = pageReplace(body, "$headers02", charts[0]) //по дням недели
+		body = pageReplace(body, "$values03", charts[1])
+		body = pageReplace(body, "$values04", charts[2])
+
+		charts = getCounterDay()
+		body = pageReplace(body, "$headers03", charts[0]) //по дням месяца
+		body = pageReplace(body, "$values05", charts[1])
+		body = pageReplace(body, "$values06", charts[2])
+
+		charts = getCounterDayYear()
+		body = pageReplace(body, "$headers04", charts[0]) //по дням года
+		body = pageReplace(body, "$values07", charts[1])
+		body = pageReplace(body, "$values08", charts[2])
+
+		charts = getCounterMonth()
+		body = pageReplace(body, "$headers05", charts[0]) //по месяцам
+		body = pageReplace(body, "$values09", charts[1])
+		body = pageReplace(body, "$values10", charts[2])
 
 		w.Write(body)
 		return
@@ -393,20 +414,20 @@ func checkAdminAuth(w http.ResponseWriter, r *http.Request) bool {
 	return false
 }
 
-func getCounterBytes() []string {
 
-	h := time.Now().Hour() + 1
+func getCounter(bytes []uint64, connections []uint64, maxIndex int, curIndex int) []string {
+	h := curIndex + 1
 
-	values1 := append(counterData.counterBytes[h:], counterData.counterBytes[:h]...)
-	values2 := append(counterData.counterConnect[h:], counterData.counterConnect[:h]...)
+	values1 := append(bytes[h:], bytes[:h]...)
+	values2 := append(connections[h:], connections[:h]...)
 
-	for i := 0; i < 24; i++ {
+	for i := 0; i < maxIndex; i++ {
 		values1[i] = values1[i] / 2
 		values2[i] = values2[i] / 2
 	}
 
 	headers := make([]int, 0)
-	for i := h; i < 24; i++ {
+	for i := h; i < maxIndex; i++ {
 		headers = append(headers, i)
 	}
 	for i := 0; i < h; i++ {
@@ -414,27 +435,27 @@ func getCounterBytes() []string {
 	}
 
 	stringHeaders := "["
-	for i := 0; i < 24; i++ {
-		stringHeaders = stringHeaders + "'" + fmt.Sprint(headers[i]) + "'"
-		if i != 23 {
+	for i := 0; i < maxIndex; i++ {
+		stringHeaders = stringHeaders + "'" + fmt.Sprint(headers[i] + 1) + "'"
+		if i != maxIndex - 1 {
 			stringHeaders = stringHeaders  + ", "
 		}
 	}
 	stringHeaders = stringHeaders + "]"
 
 	stringValues1 := "["
-	for i := 0; i < 24; i++ {
+	for i := 0; i < maxIndex; i++ {
 		stringValues1 = stringValues1 + fmt.Sprint(values1[i] / 1024 ) //in Kb
-		if i != 23 {
+		if i != maxIndex - 1 {
 			stringValues1 = stringValues1 + ", "
 		}
 	}
 	stringValues1 = stringValues1 + "]"
 
 	stringValues2 := "["
-	for i := 0; i < 24; i++ {
+	for i := 0; i < maxIndex; i++ {
 		stringValues2 = stringValues2 + fmt.Sprint(values2[i])
-		if i != 23 {
+		if i != maxIndex - 1 {
 			stringValues2 = stringValues2 + ", "
 		}
 	}
@@ -444,7 +465,28 @@ func getCounterBytes() []string {
 	answer = append(answer, stringHeaders)
 	answer = append(answer, stringValues1)
 	answer = append(answer, stringValues2)
+
 	return answer
+}
+
+func getCounterHour() []string {
+	return getCounter(counterData.CounterBytes[:], counterData.CounterConnections[:], 24, int(counterData.currentPos.Hour()))
+}
+
+func getCounterDayWeek() []string {
+	return getCounter(counterData.CounterDayWeekBytes[:], counterData.CounterDayWeekConnections[:], 7, int(counterData.currentPos.Weekday()))
+}
+
+func getCounterDay() []string {
+	return getCounter(counterData.CounterDayBytes[:], counterData.CounterDayConnections[:], 31, int(counterData.currentPos.Day()))
+}
+
+func getCounterDayYear() []string {
+	return getCounter(counterData.CounterDayYearBytes[:], counterData.CounterDayYearConnections[:], 365, int(counterData.currentPos.YearDay()))
+}
+
+func getCounterMonth() []string {
+	return getCounter(counterData.CounterMonthBytes[:], counterData.CounterMonthConnections[:], 12, int(counterData.currentPos.Month()))
 }
 
 func pageReplace(e []byte, a string, b string) []byte{

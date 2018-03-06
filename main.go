@@ -11,6 +11,7 @@ func main(){
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	loadVNCList()
+	loadCounters()
 	loadOptions()
 	loadProfiles()
 

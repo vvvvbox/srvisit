@@ -39,8 +39,25 @@
 
 				<tr>
 					<td colspan="2" class="amid">
+						Трафик по часам суток
 						<div class="ct-chart ct-perfect-fourth" id="chart1"></div>
 						<div class="ct-chart ct-perfect-fourth" id="chart2"></div>
+
+						Трафик по дням недели
+						<div class="ct-chart ct-perfect-fourth" id="chart3"></div>
+						<div class="ct-chart ct-perfect-fourth" id="chart4"></div>
+
+						Трафик по дням месяца
+						<div class="ct-chart ct-perfect-fourth" id="chart5"></div>
+						<div class="ct-chart ct-perfect-fourth" id="chart6"></div>
+
+						Трафик по дням года
+						<div class="ct-chart ct-perfect-fourth" id="chart7"></div>
+						<div class="ct-chart ct-perfect-fourth" id="chart8"></div>
+
+						Трафик по месяцам
+						<div class="ct-chart ct-perfect-fourth" id="chart9"></div>
+						<div class="ct-chart ct-perfect-fourth" id="chart10"></div>
 					</td>
 				</tr>
 				
@@ -72,21 +89,61 @@
 		
 		<script>
 			
-			// Our labels and three data series
+			//по часам
 			var data1 = {
-				labels: $headers,
-				series: [$values1]
-				//labels: ['9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '1', '2', '3', '4', '5', '6', '7', '8'],
-				//series: [[4052, 1010, 0, 0, 5186, 201, 0, 0, 0, 0, 0, 0, 0, 0, 0, 35, 0, 0, 0, 0, 0, 0, 0, 0]]
+				labels: $headers01,
+				series: [$values01]
 			};
 			
 			var data2 = {
-				labels: $headers,
-				series: [$values2]
-				//labels: ['9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '1', '2', '3', '4', '5', '6', '7', '8'],
-				//series: [[3, 1, 0, 0, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
+				labels: $headers01,
+				series: [$values02]
+			};
+			
+			//по дням недели
+			var data3 = {
+				labels: $headers02,
+				series: [$values03]
 			};
 
+			var data4 = {
+				labels: $headers02,
+				series: [$values04]
+			};
+
+			//по дням месяца
+			var data5 = {
+				labels: $headers03,
+				series: [$values05]
+			};
+
+			var data6 = {
+				labels: $headers03,
+				series: [$values06]
+			};
+
+			//по дням года
+			var data7 = {
+				labels: $headers04,
+				series: [$values07]
+			};
+			
+			var data8 = {
+				labels: $headers04,
+				series: [$values08]
+			};
+			
+			//по месяцам
+			var data9 = {
+				labels: $headers05,
+				series: [$values09]
+			};
+			
+			var data10 = {
+				labels: $headers05,
+				series: [$values10]
+			};
+			
 			var options1 = {
 				height: '200px',
 				showPoint: false,
@@ -120,10 +177,55 @@
 				}
 			};
 
-			// All you need to do is pass your configuration as third parameter to the chart function
+			var options3 = {
+				height: '200px',
+				showPoint: false,
+				fullWidth: true,
+				lineSmooth: true,
+				axisX: {
+					showGrid: false,
+					showLabel: false
+				},
+				axisY: {
+					offset: 70,
+					onlyInteger: true,
+					labelInterpolationFnc: function(value) {
+						return value + 'Kb';
+					}
+				}
+			};
+			
+			var options4 = {
+				height: '200px',
+				showPoint: false,
+				fullWidth: true,
+				lineSmooth: true,
+				axisX: {
+					showGrid: false,
+					showLabel: false
+				},
+				axisY: {
+					onlyInteger: true,
+					offset: 70
+				}
+			};
+			
 			new Chartist.Line('#chart1', data1, options1);
 			new Chartist.Line('#chart2', data2, options2);
-
+			
+			new Chartist.Line('#chart3', data3, options1);
+			new Chartist.Line('#chart4', data4, options2);
+			
+			new Chartist.Line('#chart5', data5, options1);
+			new Chartist.Line('#chart6', data6, options2);
+			
+			new Chartist.Line('#chart7', data7, options3);
+			new Chartist.Line('#chart8', data8, options4);
+			
+			new Chartist.Line('#chart9', data9, options1);
+			new Chartist.Line('#chart10', data10, options2);
+			
+			
 		</script>
 		
 	</body>

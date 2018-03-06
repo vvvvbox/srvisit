@@ -1,2 +1,4 @@
 # srvisit
-Server for centralized remote controlling computers under VNC.
+Сервер для менеджера клиентов VNC, хранит контакты, передает трансляции позволяя обойти nat.
+
+Клиентская часть доступна на http://rvisit.net

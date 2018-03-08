@@ -34,7 +34,7 @@ func getPid(serial string) string{
 		a = a * uint64(f)
 	}
 
-	//todo добавить нули если число меньше трех знаков
+	//todo факир был пьян, но пока и так сойдет
 	b := a % 999
 	for b < 100 {
 		b = b * 10
@@ -173,6 +173,26 @@ func getContact(first *Contact, id int) *Contact{
 
 		if first.Inner != nil {
 			inner := getContact(first.Inner, id)
+			if inner != nil {
+				return inner
+			}
+		}
+
+		first = first.Next
+	}
+
+	return nil
+}
+
+func getContactByPid(first *Contact, pid string) *Contact{
+
+	for first != nil {
+		if cleanPid(first.Pid) == pid {
+			return first
+		}
+
+		if first.Inner != nil {
+			inner := getContactByPid(first.Inner, pid)
 			if inner != nil {
 				return inner
 			}

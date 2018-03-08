@@ -15,7 +15,7 @@ func main(){
 	loadOptions()
 	loadProfiles()
 
-	go finderNeighbours()	//поиск соседей
+	//go finderNeighbours()	//поиск соседей
 	go helperThread() 		//используем для периодических действий(сохранения и т.п.)
 	go httpServer()			//обработка веб запросов
 	go mainServer()			//обработка основных команд от клиентов

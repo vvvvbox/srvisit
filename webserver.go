@@ -112,8 +112,16 @@ func handleResources(w http.ResponseWriter, r *http.Request) {
 
 		connectionsString = connectionsString + fmt.Sprintln(key.(string), value.(*Client).Serial, value.(*Client).Version, (*value.(*Client).Conn).RemoteAddr(), buf1)
 
-		value.(*Client).profiles.Range(func (key interface {}, value interface {}) bool {
-			connectionsString = connectionsString + fmt.Sprintln("\t ->", key.(string))
+		value.(*Client).profiles.Range(func (k interface {}, v interface {}) bool {
+
+			var capt string
+			c := getContactByPid(v.(*Profile).Contacts, cleanPid(value.(*Client).Pid)) //todo потом убрать, лишние итерации не сильно нам интересны
+			if c != nil {
+				capt = fmt.Sprint("/ ", c.Caption)
+			}
+
+			connectionsString = connectionsString + fmt.Sprintln("\t ->", k.(string), capt)
+
 			return true
 		})
 

@@ -33,9 +33,6 @@ func processAuth(message Message, conn *net.Conn, curClient *Client, id string) 
 	}
 
 	s := getPid(message.Messages[0])
-	if message.Messages[0] == "00:00:00:00:00:00" {
-		s = getPid(randomString(17))
-	}
 
 	salt := randomString(16)
 

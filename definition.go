@@ -9,7 +9,7 @@ import (
 )
 
 const(
-	REVISIT_VERSION = "0.4"
+	REVISIT_VERSION = "0.5"
 
 	//общие константы
 	CODE_LENGTH = 64 //длина code
@@ -21,8 +21,7 @@ const(
 	LOG_NAME = "log.txt"
 	PORT_FINDER_NEIGHBOURS = 1231
 	MAX_LEN_ID_NEIGHBOUR = 8
-	WAIT_IDLE_FINDER = 5
-	WAIT_IDLE_CLEANER = 11
+	LEN_SALT = 16
 
 	//константы ожидания
 	WAIT_COUNT = 15
@@ -30,13 +29,15 @@ const(
 	WAIT_AFTER_CONNECT = 250
 	WAIT_HELPER_CYCLE = 5
 	WAIT_PING = 10
+	WAIT_IDLE_FINDER = 5
+	WAIT_IDLE_CLEANER = 11
 
 	//виды сообщений логов
-	MESS_ERROR = 1
-	MESS_INFO = 2
+	MESS_ERROR  = 1
+	MESS_INFO   = 2
 	MESS_DETAIL = 3
-	MESS_FULL = 4
-
+	MESS_FULL   = 4
+	
 	//виды сообщений
 	TMESS_DEAUTH = 0				//деаутентификация()
 	TMESS_VERSION = 1				//запрос версии
@@ -59,23 +60,26 @@ const(
 	TMESS_PING = 18					//проверка состояния подключения
 	TMESS_CONTACT_REVERSE = 19		//добавление себя в чужой профиль
 
+	REGULAR = 0
+	MASTER  = 1
+	NODE    = 2
+
 )
+
+
 
 var(
 
 	//опции по-умолчанию
 	options = Options{
-		"",
-		"",
-		"",
-		"",
-		"65471",
-		"65475",
-		"8090",
-		16000,
-		"admin",
-		"admin",
-		true,
+		MainServerPort: "65471",
+		DataServerPort: "65475",
+		HttpServerPort: "8090",
+		SizeBuff:       16000,
+		AdminLogin:     "admin",
+		AdminPass:      "admin",
+		Mode:           REGULAR,
+		FDebug:         true,
 	}
 
 	//считаем всякую бесполезную информацию или нет
@@ -171,7 +175,10 @@ var(
 		{"clearlog", processApiClearLog},
 		{"profile_save", processApiProfileSave},
 		{"profile_get", processApiProfileGet},
-		{"save_options", processApiSaveOptions} }
+		{"save_options", processApiSaveOptions},
+		{"options_save", processApiOptionsSave},
+		{"reload", processApiReload},
+		{"options_get", processApiOptionsGet} }
 
 	//список доступных vnc клиентов и выбранный по-умолчанию
 	defaultVnc = 0
@@ -227,6 +234,9 @@ type Options struct {
 	//учетка для админ панели
 	AdminLogin	string
 	AdminPass	string
+
+	//режим работы экземпляра сервера
+	Mode		int
 
 	//очевидно что флаг для отладки
 	FDebug		bool

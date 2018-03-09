@@ -359,3 +359,31 @@ a:hover{
 	margin-left: 112px;
 }
 /*-----------------*/
+.option form {
+	width: 200px;
+	margin: auto;
+}
+
+.option p {
+	margin: 5px 0px;
+	color: #333333;
+}
+
+.option input {
+	width: 200px;
+}
+
+.option select {
+	width: 212px;
+}
+
+.option input[type=button] {
+	width: 125px;
+	margin: 5px;
+}
+
+.option input[type=submit] {
+	width: 125px;
+	margin: 5px;
+}
+/*-----------------*/

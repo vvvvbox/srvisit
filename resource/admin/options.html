@@ -19,11 +19,51 @@
 			var menu = $menu;
 			
 
+			var options;
 			
+			function make(m, arg1){
+				var req = getXmlHttp()
+				//var statusElem = document.getElementById('status')
+				req.onreadystatechange = function() {
+				
+					if (req.readyState == 4) {
+						if(req.status == 200) {
+							//statusElem.innerHTML = "успешно";	
+							if (m == 'options_get') {
+								options = JSON.parse(req.responseText);
+								
+								document.getElementById('mode').value = options.Mode;
+								document.getElementById('serversmtp').value = options.ServerSMTP;
+								document.getElementById('portsmtp').value = options.PortSMTP;
+								document.getElementById('loginsmtp').value = options.LoginSMTP;
+								document.getElementById('passsmtp').value = options.PassSMTP;
+								document.getElementById('bufsize').value = options.SizeBuff;
+								document.getElementById('loginadmin').value = options.AdminLogin;
+								document.getElementById('passadmin').value = options.AdminPass;
+							}
+						}else if(req.status == 401){
+							document.location = '/';
+						}else{
+							alert('Не удалось выполнить!');
+							//statusElem.innerHTML = "ошибка";
+						}
+					}
+				}
+
+				if (m == 'reload') {
+					req.open('GET', '/api?make=reload', true)
+				}
+				if (m == 'options_get') {
+					req.open('GET', '/api?make=options_get', true)
+				}
+				
+				req.send(null)
+				//statusElem.innerHTML = "запрос"
+			}
 		</script>
 
 	</head>
-	<body onload='loadMenu()'>
+	<body onload="loadMenu(); make('options_get');">
 	
 		<div class="content">
 
@@ -36,12 +76,45 @@
 				<tr> <td colspan="2"></td> </tr>
 
 				<tr>
-					<td colspan="2" class="amid">
-						<a href="/api?make=save_options">сохранить настройки</a><br>
-
+					<td colspan="2" class="aleft option">
+						<form action="/api?make=options_save" method="POST">
+							<p>Режим работы сервера</p>
+							<select id="mode">
+								<option value="0">Обычный</option>
+								<option value="1">Мастер</option>
+								<option value="2">Дочерний</option>
+							</select>
+							
+							<p>Сервер smtp</p>
+							<input type="text" placeholder="" id="serversmtp" name="serversmtp">
+							
+							<p>Порт smtp</p>
+							<input type="text" placeholder="" id="portsmtp" name="portsmtp">
+							
+							<p>Логин smtp</p>
+							<input type="text" placeholder="" id="loginsmtp" name="loginsmtp">
+							
+							<p>Пароль smtp</p>
+							<input type="text" placeholder="" id="passsmtp" name="passsmtp">
+							
+							<p>Размер буфера</p>
+							<input type="text" placeholder="" id="bufsize" name="bufsize">
+							
+							<p>Логин админки</p>
+							<input type="text" placeholder="" id="loginadmin" name="loginadmin">
+							
+							<p>Пароль админки</p>
+							<input type="text" placeholder="" id="passadmin" name="passadmin">
+							
+							<br><br>
+							<div class="amid">
+								<input type="submit" value="Сохранить">
+								<input type="button" value="Перезапустить" onclick="/api?make=reload">
+							</div>
+						</form>
 					</td>
 				</tr>
-				
+
 ﻿				<tr> <td colspan="2"></td> </tr>
 
 				<tr>

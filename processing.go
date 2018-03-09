@@ -31,10 +31,16 @@ func processAuth(message Message, conn *net.Conn, curClient *Client, id string) 
 		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
 		return
 	}
+	if len(message.Messages[0]) < 3 {
+		time.Sleep(time.Millisecond * WAIT_IDLE)
+		sendMessage(conn, TMESS_DEAUTH)
+		logAdd(MESS_ERROR, id + " слабый serial")
+		return
+	}
 
 	s := getPid(message.Messages[0])
 
-	salt := randomString(16)
+	salt := randomString(LEN_SALT)
 
 	value, exist := clients.Load(cleanPid(s))
 	if exist {

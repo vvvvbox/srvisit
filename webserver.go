@@ -8,6 +8,7 @@ import (
 	"os"
 	"bytes"
 	"time"
+	"strconv"
 )
 
 
@@ -96,9 +97,11 @@ func handleResources(w http.ResponseWriter, r *http.Request) {
 	connectionsString := "<pre>"
 
 	var buf1 string
-	connectionsString = connectionsString + fmt.Sprintln("\n\nагенты:")
-	for _, agent := range neighbours {
-		connectionsString = connectionsString + fmt.Sprintln(agent.Id, agent.Ip, "\t", agent.Name)
+	if options.Mode != REGULAR {
+		connectionsString = connectionsString + fmt.Sprintln("\n\nагенты:")
+		for _, agent := range neighbours {
+			connectionsString = connectionsString + fmt.Sprintln(agent.Id, agent.Ip, "\t", agent.Name)
+		}
 	}
 
 	connectionsString = connectionsString + fmt.Sprintln("\n\nклиенты:")
@@ -383,6 +386,66 @@ func processApiSaveOptions(w http.ResponseWriter, r *http.Request) {
 	handleOptions(w, r)
 }
 
+func processApiReload(w http.ResponseWriter, r *http.Request) {
+	if !checkAdminAuth(w, r) {
+		return
+	}
+
+	logAdd(MESS_INFO, "WEB Запрос на перезапуск сервера")
+
+	//todo перезапуск
+	w.WriteHeader(http.StatusOK)
+}
+
+func processApiOptionsGet(w http.ResponseWriter, r *http.Request) {
+	if !checkAdminAuth(w, r) {
+		return
+	}
+
+	logAdd(MESS_INFO, "WEB Запрос опций")
+
+	b, err := json.Marshal(options)
+	if err == nil {
+		w.Write(b)
+		return
+	}
+
+	http.Error(w, "", http.StatusBadRequest)
+}
+
+func processApiOptionsSave(w http.ResponseWriter, r *http.Request) {
+	if !checkAdminAuth(w, r) {
+		return
+	}
+
+	logAdd(MESS_INFO, "WEB Запрос сохранения опций")
+
+	portsmtp := string(r.FormValue("portsmtp"))
+	loginsmtp := string(r.FormValue("loginsmtp"))
+	passsmtp := string(r.FormValue("passsmtp"))
+	loginadmin := string(r.FormValue("loginadmin"))
+	passadmin := string(r.FormValue("passadmin"))
+
+	mode, err := strconv.Atoi(string(r.FormValue("mode")))
+	if err == nil {
+		options.Mode = mode
+	}
+
+	bufsize, err := strconv.Atoi(string(r.FormValue("bufsize")))
+	if err == nil {
+		options.SizeBuff = bufsize
+	}
+
+	options.PortSMTP = portsmtp
+	options.LoginSMTP = loginsmtp
+	options.PassSMTP = passsmtp
+	options.AdminLogin = loginadmin
+	options.AdminPass = passadmin
+
+	saveOptions()
+	handleOptions(w, r)
+}
+
 
 
 //общие функции
@@ -421,6 +484,7 @@ func checkAdminAuth(w http.ResponseWriter, r *http.Request) bool {
 	http.Error(w, "auth req", http.StatusUnauthorized)
 	return false
 }
+
 
 
 func getCounter(bytes []uint64, connections []uint64, maxIndex int, curIndex int) []string {

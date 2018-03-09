@@ -247,7 +247,6 @@ func disconnectPeers(code string) {
 
 
 func finderNeighbours() {
-
 	neighbours = make(map[string]*Neighbour)
 
 	//там чистим не активные агенты

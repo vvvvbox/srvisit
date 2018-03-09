@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"time"
-	"strconv"
 	"bytes"
 	"math/rand"
 	"encoding/json"
@@ -52,10 +51,7 @@ func getPid(serial string) string{
 		e = e * 10
 	}
 
-	var r string
-	r = strconv.Itoa(int(b)) + ":" + strconv.Itoa(int(c)) + ":" + strconv.Itoa(int(d)) + ":" + strconv.Itoa(int(e))
-
-	return r
+	return fmt.Sprintf("%d:%d:%d:%d", b, c, d, e)
 }
 
 func logAdd(TMessage int, Messages string){
@@ -65,7 +61,7 @@ func logAdd(TMessage int, Messages string){
 			logFile, _ = os.Create(LOG_NAME)
 		}
 
-		//todo наверное стоит убрать, но пока меашет пинг в логах
+		//todo наверное стоит убрать, но пока мешает пинг в логах
 		if strings.Contains(Messages, "buff (31): {\"TMessage\":18,\"Messages\":null}") || strings.Contains(Messages, "{18 []}") {
 			return
 		}
@@ -463,6 +459,8 @@ func saveCounters() {
 }
 
 func loadCounters(){
+	counterData.currentPos = time.Now()
+
 	f, err := os.Open(FILE_COUNTERS)
 	defer f.Close()
 	if err == nil {

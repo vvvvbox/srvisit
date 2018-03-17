@@ -97,11 +97,13 @@ func handleResources(w http.ResponseWriter, r *http.Request) {
 	connectionsString := "<pre>"
 
 	var buf1 string
-	if options.Mode != REGULAR {
+	if options.Mode == MASTER {
 		connectionsString = connectionsString + fmt.Sprintln("\n\nагенты:")
-		for _, agent := range neighbours {
+		nodes.Range(func (key interface {}, value interface {}) bool {
+			agent := value.(*Node)
 			connectionsString = connectionsString + fmt.Sprintln(agent.Id, agent.Ip, "\t", agent.Name)
-		}
+			return true
+		})
 	}
 
 	connectionsString = connectionsString + fmt.Sprintln("\n\nклиенты:")
@@ -133,7 +135,17 @@ func handleResources(w http.ResponseWriter, r *http.Request) {
 
 	connectionsString = connectionsString + fmt.Sprintln("\n\nсессии:")
 	channels.Range(func (key interface {}, value interface {}) bool {
-		connectionsString = connectionsString + fmt.Sprintln((*value.(*dConn).pointer[0]).RemoteAddr(), "<->", (*value.(*dConn).pointer[1]).LocalAddr(), "<->", (*value.(*dConn).pointer[1]).RemoteAddr() )
+		if value.(*dConn).pointer[0] != nil {
+			connectionsString = connectionsString + fmt.Sprintln((*value.(*dConn).pointer[0]).RemoteAddr(), "<->", (*value.(*dConn).pointer[0]).LocalAddr() )
+		} else {
+			connectionsString = connectionsString + fmt.Sprintln("nil <-> nil")
+		}
+
+		if value.(*dConn).pointer[1] != nil {
+			connectionsString = connectionsString + fmt.Sprintln("<->", (*value.(*dConn).pointer[1]).LocalAddr(), "<->", (*value.(*dConn).pointer[1]).RemoteAddr() )
+		} else {
+			connectionsString = connectionsString + fmt.Sprintln("nil <-> nil")
+		}
 		return true
 	})
 

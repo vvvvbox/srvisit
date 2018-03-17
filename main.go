@@ -12,10 +12,6 @@ func main(){
 
 	loadOptions()
 
-	if options.Mode != REGULAR {
-		go finderNeighbours() //поиск соседей
-	}
-
 	if options.Mode != NODE {
 		loadVNCList()
 		loadCounters()
@@ -23,10 +19,17 @@ func main(){
 
 		go helperThread() //используем для периодических действий(сохранения и т.п.)
 		go httpServer()   //обработка веб запросов
-		go mainServer()   //обработка основных команд от клиентов
+		go mainServer()   //обработка основных команд от клиентов и агентов
 	}
 
-	go dataServer()			//обработка потоков данных от клиентов
+
+	if options.Mode != MASTER {
+		go dataServer() //обработка потоков данных от клиентов
+	}
+
+	if options.Mode == NODE {
+		go nodeClient()	//клинет подключающийся к мастеру
+	}
 
 	var r string
 	for r != "quit" {

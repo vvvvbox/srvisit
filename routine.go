@@ -98,7 +98,7 @@ func randInt(min int, max int) int {
 	return min + rand.Intn(max-min)
 }
 
-func sendMessageRaw(conn *net.Conn, TMessage int, Messages[] string) bool{
+func sendMessage(conn *net.Conn, TMessage int, Messages ...string) bool{
 	if conn == nil {
 		logAdd(MESS_ERROR, "нет сокета для отправки")
 		return false
@@ -116,10 +116,6 @@ func sendMessageRaw(conn *net.Conn, TMessage int, Messages[] string) bool{
 		}
 	}
 	return false
-}
-
-func sendMessage(conn *net.Conn, TMessage int, Messages ...string) bool{
-	return sendMessageRaw(conn, TMessage, Messages)
 }
 
 func getSHA256(str string) string {
@@ -430,16 +426,6 @@ func checkStatuses(curClient *Client, first *Contact) {
 
 }
 
-func getInvisibleEmail(email string) string{
-
-	length := len(email)
-	if length > 10 {
-		return email[:5] + "*****" + email[length - 5:]
-	} else {
-		return email[:1] + "*****" + email[length - 1:]
-	}
-}
-
 func saveCounters() {
 	b, err := json.Marshal(counterData)
 	if err == nil {
@@ -479,6 +465,10 @@ func loadCounters(){
 }
 
 func addCounter(bytes uint64) {
+	if options.Mode == NODE {
+		sendMessageToMaster(TMESS_AGENT_DEL_CONNECT, fmt.Sprint(bytes))
+	}
+
 	counterData.mutex.Lock()
 	defer counterData.mutex.Unlock()
 
@@ -537,5 +527,37 @@ func checkError(err error) {
 	if err != nil {
 		panic(err)
 		os.Exit(1)
+	}
+}
+
+func getMyIp() string {
+	int, err := net.Interfaces()
+	checkError(err)
+
+	ip := net.IPv4zero.String()
+	for _, i := range int {
+		if (i.Flags&net.FlagLoopback == 0) && (i.Flags&net.FlagPointToPoint == 0) && (i.Flags&net.FlagUp == 1) {
+			z, err := i.Addrs()
+			checkError(err)
+
+			for _, j := range z {
+				x, _, _ := net.ParseCIDR(j.String())
+
+				if x.IsGlobalUnicast() && x.To4() != nil {
+					ip = x.To4().String()
+					return ip
+				}
+			}
+		}
+	}
+
+	return ip
+}
+
+func ping(conn *net.Conn){
+	success := true
+	for success{
+		time.Sleep(time.Second * WAIT_PING)
+		success = sendMessage(conn, TMESS_PING)
 	}
 }

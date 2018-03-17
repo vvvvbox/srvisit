@@ -116,8 +116,7 @@ func processConnectRaw(message Message, conn *net.Conn, curClient *Client, id st
 		passDigest := message.Messages[1]
 
 		code := randomString(CODE_LENGTH)
-		var newConnection dConn
-		channels.Store(code, &newConnection)
+		connectPeers(code)
 
 		//самый простой вариант через сервер оба пира
 		if sendMessage(curClient.Conn, TMESS_CONNECT, passDigest, salt, code, "simple", "client", peer.Pid) { //тот кто получает трансляцию
@@ -295,7 +294,7 @@ func processContact(message Message, conn *net.Conn, curClient *Client, id strin
 
 		//отправим всем авторизованным об изменениях
 		profile.clients.Range(func (key interface {}, value interface {}) bool {
-			sendMessageRaw(value.(*Client).Conn, message.TMessage, message.Messages)
+			sendMessage(value.(*Client).Conn, message.TMessage, message.Messages...)
 			return true
 		})
 
@@ -330,8 +329,12 @@ func processContacts(message Message, conn *net.Conn, curClient *Client, id stri
 func processLogout(message Message, conn *net.Conn, curClient *Client, id string) {
 	logAdd(MESS_INFO, id + " пришел запрос на выход")
 
-	curClient.Profile.clients.Delete(cleanPid(curClient.Pid))
+	if curClient.Profile == nil {
+		logAdd(MESS_ERROR, id + " не авторизован профиль")
+		return
+	}
 
+	curClient.Profile.clients.Delete(cleanPid(curClient.Pid))
 	curClient.Profile = nil
 }
 
@@ -452,7 +455,7 @@ func processInfoAnswer(message Message, conn *net.Conn, curClient *Client, id st
 		peer := value.(*Client)
 
 		if peer.Profile != nil {
-			sendMessageRaw(peer.Conn, TMESS_INFO_ANSWER, message.Messages)
+			sendMessage(peer.Conn, TMESS_INFO_ANSWER, message.Messages...)
 			logAdd(MESS_INFO, id + " вернули ответ")
 		} else {
 			logAdd(MESS_ERROR, id + " деавторизованный профиль")

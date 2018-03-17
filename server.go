@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"bytes"
 	"encoding/json"
-	"strings"
 )
 
 
@@ -39,7 +38,7 @@ func mainServer(){
 }
 
 func mainHandler(conn *net.Conn) {
-	id := randomString(6)
+	id := randomString(MAX_LEN_ID_LOG)
 	logAdd(MESS_INFO, id + " mainServer получил соединение")
 
 	var curClient Client
@@ -159,7 +158,9 @@ func dataHandler(conn *net.Conn) {
 			break
 		}
 
+
 		peers := value.(*dConn)
+		peers.mutex.Lock()
 		var numPeer int
 		if peers.pointer[0] == nil {
 			peers.pointer[0] = conn
@@ -167,6 +168,11 @@ func dataHandler(conn *net.Conn) {
 		} else if peers.pointer[1] == nil {
 			peers.pointer[1] = conn
 			numPeer = 0
+		}
+		peers.mutex.Unlock()
+
+		if options.Mode == NODE {
+			sendMessageToMaster(TMESS_AGENT_NEW_CONNECT, code)
 		}
 
 		var cWait = 0
@@ -217,12 +223,17 @@ func dataHandler(conn *net.Conn) {
 			}
 		}
 
-		addCounter(countBytes)
+		addCounter(countBytes) //todo ну и наверное статистику по байтам в каунтер добавить
 
 		logAdd(MESS_INFO, id + " поток завершается")
-		channels.Delete(code)
-		break
 
+		if options.Mode == NODE {
+			sendMessageToMaster(TMESS_AGENT_DEL_CONNECT, code)
+		}else{
+			disconnectPeers(code)
+		}
+
+		break
 	}
 	(*conn).Close()
 	logAdd(MESS_INFO, id + " dataHandler потерял соединение")
@@ -230,148 +241,28 @@ func dataHandler(conn *net.Conn) {
 }
 
 func disconnectPeers(code string) {
-	value, exists := channels.Load(code)
-	if exists {
-		pair := value.(*dConn)
-		channels.Delete(code)
-
-		if pair.pointer[0] != nil {
-			(*pair.pointer[0]).Close()
-		}
-		if pair.pointer[1] != nil {
-			(*pair.pointer[1]).Close()
-		}
-	}
-}
-
-
-
-func finderNeighbours() {
-	neighbours = make(map[string]*Neighbour)
-
-	//там чистим не активные агенты
-	go cleanerNeighbours()
-
-	//здесь мы ждём подключения
-	addr, err := net.ResolveUDPAddr("udp", ":" + fmt.Sprint(PORT_FINDER_NEIGHBOURS))
-	checkError(err)
-
-	conn, err := net.ListenUDP("udp", addr)
-	checkError(err)
-
-	go agentFinderNeighbours(conn)
-
-	reader := bufio.NewReader(conn)
-	for {
-		line, _, err := reader.ReadLine()
-		if err != nil {
-			logAdd(MESS_ERROR, "Ошибка чтения сообщения от агента: " + fmt.Sprint(err))
-			fmt.Println(err)
-			continue
-		}
-
-		n, ip, id := parseAnswerAgent(string(line))
-
-		neighbour := neighbours[ip]
-		if neighbour == nil {
-			var newNeighbour Neighbour
-			newNeighbour.Name = n
-			newNeighbour.Id = id
-			newNeighbour.Ip = ip
-			newNeighbour.LastVisible = time.Now()
-			neighboursM.Lock()
-			neighbours[ip] = &newNeighbour
-			neighboursM.Unlock()
-			logAdd(MESS_INFO, "Появился новый агент " + ip + " " + id + " " + n)
-		} else {
-			neighbour.LastVisible = time.Now()
-			//logAdd(MESS_DETAIL, "Обновили состояние агента " + ip)
-		}
-	}
-}
-
-func agentFinderNeighbours(conn *net.UDPConn) {
-
-	hostname, _ := os.Hostname()
-	id := randomString(MAX_LEN_ID_NEIGHBOUR)
-
-	ip := getMyIp()
-
-	myString := hostname + ":" + ip + ":" + fmt.Sprint(id) + "\n"
-
-	//периодически делаем рассылку о своём существовании
-	for {
-		adr, err := net.ResolveUDPAddr("udp", fmt.Sprint(net.IPv4bcast) + ":" + fmt.Sprint(PORT_FINDER_NEIGHBOURS))
-		checkError(err)
-
-		n, err := (*conn).WriteToUDP([]byte(myString), adr)
-		checkError(err)
-
-		if n <= 0 {
-			logAdd(MESS_ERROR, "Не получилось отправить агенту сообщение для соседей")
-		}
-
-		time.Sleep(time.Second * WAIT_IDLE_FINDER)
-	}
-}
-
-func parseAnswerAgent(message string) (string, string, string){
-	p1 := strings.Index(message, ":")
-	p2 := strings.LastIndex(message, ":")
-
-	if p1 == p2 {
-		logAdd(MESS_ERROR, "Ошибка разбора сообщения от агента")
-		return "", "", ""
-	}
-
-	return message[:p1], message[p1 + 1:p2], message[p2 + 1:]
-}
-
-func cleanerNeighbours() {
-	for {
-		for _, agent := range neighbours {
-			if agent.LastVisible.Add(time.Second * WAIT_IDLE_CLEANER).Before(time.Now()) {
-				neighboursM.Lock()
-				delete(neighbours, agent.Ip)
-				neighboursM.Unlock()
-				logAdd(MESS_INFO, "Удалили устаревшего агента " + agent.Ip + " " + agent.Id + " " + agent.Name)
+	if options.Mode == MASTER {
+		sendMessageToNodes(TMESS_AGENT_DEL_CODE, code)
+	} else {
+		value, exists := channels.Load(code)
+		if exists {
+			channels.Delete(code)
+			pair := value.(*dConn)
+			if pair.pointer[0] != nil {
+				(*pair.pointer[0]).Close()
 			}
-		}
-
-		time.Sleep(time.Second * WAIT_IDLE_CLEANER)
-	}
-}
-
-func getMyIp() string {
-	int, err := net.Interfaces()
-	checkError(err)
-
-	ip := net.IPv4zero.String()
-	for _, i := range int {
-		if (i.Flags&net.FlagLoopback == 0) && (i.Flags&net.FlagPointToPoint == 0) && (i.Flags&net.FlagUp == 1) {
-			z, err := i.Addrs()
-			checkError(err)
-
-			for _, j := range z {
-				x, _, _ := net.ParseCIDR(j.String())
-
-				if x.IsGlobalUnicast() && x.To4() != nil {
-					ip = x.To4().String()
-					return ip
-				}
+			if pair.pointer[1] != nil {
+				(*pair.pointer[1]).Close()
 			}
 		}
 	}
-
-	return ip
 }
 
-
-
-func ping(conn *net.Conn){
-	success := true
-	for success{
-		time.Sleep(time.Second * WAIT_PING)
-		success = sendMessage(conn, TMESS_PING)
+func connectPeers(code string) {
+	if options.Mode == MASTER {
+		sendMessageToNodes(TMESS_AGENT_ADD_CODE, code)
+	} else {
+		var newConnection dConn
+		channels.Store(code, &newConnection)
 	}
 }

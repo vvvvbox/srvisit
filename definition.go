@@ -19,18 +19,17 @@ const(
 	FILE_COUNTERS = "counters.json"
 	FILE_VNCLIST = "vnc.list"
 	LOG_NAME = "log.txt"
-	PORT_FINDER_NEIGHBOURS = 1231
-	MAX_LEN_ID_NEIGHBOUR = 8
+	MAX_LEN_ID_LOG = 6
+	MAX_LEN_ID_NODE = 8
 	LEN_SALT = 16
 
 	//константы ожидания
-	WAIT_COUNT = 15
+	WAIT_COUNT = 30
 	WAIT_IDLE = 500
 	WAIT_AFTER_CONNECT = 250
 	WAIT_HELPER_CYCLE = 5
 	WAIT_PING = 10
-	WAIT_IDLE_FINDER = 5
-	WAIT_IDLE_CLEANER = 11
+	WAIT_IDLE_AGENT = 2
 
 	//виды сообщений логов
 	MESS_ERROR  = 1
@@ -60,6 +59,15 @@ const(
 	TMESS_PING = 18					//проверка состояния подключения
 	TMESS_CONTACT_REVERSE = 19		//добавление себя в чужой профиль
 
+	TMESS_AGENT_AUTH = 20
+	TMESS_AGENT_ANSWER = 21
+	TMESS_AGENT_ADD_CODE = 22
+	TMESS_AGENT_DEL_CODE = 23
+	TMESS_AGENT_NEW_CONNECT = 24
+	TMESS_AGENT_DEL_CONNECT = 25
+	TMESS_AGENT_ADD_BYTES = 26
+	TMESS_AGENT_CONNECT = 27
+
 	REGULAR = 0
 	MASTER  = 1
 	NODE    = 2
@@ -80,6 +88,7 @@ var(
 		AdminPass:      "admin",
 		Mode:           REGULAR,
 		FDebug:         true,
+		MasterServer:	"data.rvisit.net",
 	}
 
 	//считаем всякую бесполезную информацию или нет
@@ -124,7 +133,7 @@ var(
 	logFile *os.File
 
 	//карта подключенных клиентов
-	clients sync.Map
+	clients  sync.Map
 
 	//карта каналов для передачи данных
 	channels sync.Map
@@ -133,8 +142,11 @@ var(
 	profiles sync.Map
 
 	//агенты обработки данных
-	neighbours	map[string]*Neighbour
-	neighboursM sync.Mutex
+	nodes	 sync.Map
+
+	//сокет до мастера
+	master *net.Conn
+
 
 	//текстовая расшифровка сообщений для логов
 	messLogText = []string{
@@ -165,7 +177,16 @@ var(
 		{TMESS_INFO_ANSWER, processInfoAnswer},
 		{TMESS_MANAGE, processManage},
 		{TMESS_PING, processPing},
-		{TMESS_CONTACT_REVERSE, processContactReverse} }
+		{TMESS_CONTACT_REVERSE, processContactReverse},
+
+		{TMESS_AGENT_AUTH, processAgentAuth},
+		{TMESS_AGENT_ANSWER, processAgentAnswer},
+		{TMESS_AGENT_ADD_CODE, processAgentAddCode},
+		{TMESS_AGENT_DEL_CODE, processAgentDelCode},
+		{TMESS_AGENT_NEW_CONNECT, processAgentNewConnect},
+		{TMESS_AGENT_DEL_CONNECT, processAgentDelConnect},
+		{TMESS_AGENT_ADD_BYTES, processAgentAddBytes},
+		{TMESS_AGENT_CONNECT, processAgentConnect} }
 
 	//функции для обработки web api
 	processingWeb = []ProcessingWeb{
@@ -188,13 +209,16 @@ var(
 //double pointer
 type dConn struct {
 	pointer [2]*net.Conn
+	flag [2]bool
+	node [2]*Node
+	mutex sync.Mutex
 }
 
-type Neighbour struct {
-	Id          string
-	Name		string
-	Ip          string
-	LastVisible time.Time
+type Node struct {
+	Id      string
+	Name	string
+	Ip      string
+	Conn	*net.Conn
 }
 
 type ProcessingWeb struct {
@@ -236,7 +260,10 @@ type Options struct {
 	AdminPass	string
 
 	//режим работы экземпляра сервера
-	Mode		int
+	Mode			int
+
+	//мастер сервер, если он нужен
+	MasterServer	string
 
 	//очевидно что флаг для отладки
 	FDebug		bool

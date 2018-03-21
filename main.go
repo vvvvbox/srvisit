@@ -3,6 +3,8 @@ package main
 import (
 	"runtime"
 	"fmt"
+	"os"
+	"strings"
 )
 
 func main(){
@@ -11,6 +13,14 @@ func main(){
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	loadOptions()
+
+	for _, x := range os.Args {
+		if strings.Contains(x, "node") {
+			options.Mode = NODE
+		} else if strings.Contains(x, "master"){
+			options.Mode = MASTER
+		}
+	}
 
 	if options.Mode != NODE {
 		loadVNCList()

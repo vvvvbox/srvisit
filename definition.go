@@ -36,7 +36,11 @@ const(
 	MESS_INFO   = 2
 	MESS_DETAIL = 3
 	MESS_FULL   = 4
-	
+
+	//виды клиентов
+	CLIENT_PEER = 0
+	CLIENT_AGENT = 1
+
 	//виды сообщений
 	TMESS_DEAUTH = 0				//деаутентификация()
 	TMESS_VERSION = 1				//запрос версии
@@ -95,20 +99,25 @@ var(
 	counterData struct{
 		currentPos time.Time
 
-		CounterBytes       [24]uint64
-		CounterConnections [24]uint64
+		CounterBytes		[24]uint64
+		CounterConnections	[24]uint64
+		CounterClients		[24]uint64
 
-		CounterDayWeekBytes       [7]uint64
-		CounterDayWeekConnections [7]uint64
+		CounterDayWeekBytes			[7]uint64
+		CounterDayWeekConnections	[7]uint64
+		CounterDayWeekClients		[7]uint64
 
-		CounterDayBytes       [31]uint64
-		CounterDayConnections [31]uint64
+		CounterDayBytes			[31]uint64
+		CounterDayConnections	[31]uint64
+		CounterDayClients		[31]uint64
 
-		CounterDayYearBytes       [365]uint64
-		CounterDayYearConnections [365]uint64
+		CounterDayYearBytes			[365]uint64
+		CounterDayYearConnections	[365]uint64
+		CounterDayYearClients		[365]uint64
 
 		CounterMonthBytes       [12]uint64
 		CounterMonthConnections [12]uint64
+		CounterMonthClients		[12]uint64
 
 		mutex sync.Mutex
 	}
@@ -319,6 +328,9 @@ type Client struct {
 
 	Conn	*net.Conn
 	Code 	string //for connection
+	Type    int
+
+	Node	*Node
 
 	profiles sync.Map //профили которые содержат этого клиента в контактах(используем для отправки им информации о своем статусе)
 }

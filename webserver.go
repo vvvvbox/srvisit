@@ -135,17 +135,29 @@ func handleResources(w http.ResponseWriter, r *http.Request) {
 
 	connectionsString = connectionsString + fmt.Sprintln("\n\nсессии:")
 	channels.Range(func (key interface {}, value interface {}) bool {
-		if value.(*dConn).pointer[0] != nil {
-			connectionsString = connectionsString + fmt.Sprintln((*value.(*dConn).pointer[0]).RemoteAddr(), "<->", (*value.(*dConn).pointer[0]).LocalAddr() )
+		dConn := value.(*dConn)
+
+		if dConn.pointer[0] != nil {
+			connectionsString = connectionsString + fmt.Sprint((*dConn.pointer[0]).RemoteAddr(), " <-> ", (*dConn.pointer[0]).LocalAddr() )
 		} else {
-			connectionsString = connectionsString + fmt.Sprintln("nil <-> nil")
+			if dConn.node[1] != nil {
+				connectionsString = connectionsString + fmt.Sprint(dConn.node[0].Ip, " <-> ", (*dConn.node[0].Conn).RemoteAddr() )
+			} else {
+				connectionsString = connectionsString + fmt.Sprint("nil <-> nil")
+			}
 		}
 
-		if value.(*dConn).pointer[1] != nil {
-			connectionsString = connectionsString + fmt.Sprintln("<->", (*value.(*dConn).pointer[1]).LocalAddr(), "<->", (*value.(*dConn).pointer[1]).RemoteAddr() )
+		if dConn.pointer[1] != nil {
+			connectionsString = connectionsString + fmt.Sprint(" <-> ", (*dConn.pointer[1]).LocalAddr(), " <-> ", (*dConn.pointer[1]).RemoteAddr() )
 		} else {
-			connectionsString = connectionsString + fmt.Sprintln("nil <-> nil")
+			if dConn.node[1] != nil {
+				connectionsString = connectionsString + fmt.Sprint(" <-> ", (*dConn.node[1].Conn).RemoteAddr(), " <-> ", dConn.node[1].Ip )
+			} else {
+				connectionsString = connectionsString + fmt.Sprint(" <-> nil <-> nil")
+			}
 		}
+
+		connectionsString = connectionsString + "\n"
 		return true
 	})
 

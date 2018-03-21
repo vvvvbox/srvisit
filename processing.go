@@ -39,8 +39,11 @@ func processAuth(message Message, conn *net.Conn, curClient *Client, id string) 
 	}
 
 	s := getPid(message.Messages[0])
+	logAdd(MESS_INFO, id + " сгенерировали pid")
 
 	salt := randomString(LEN_SALT)
+	curClient.Type = CLIENT_PEER
+	curClient.Node = nil
 
 	value, exist := clients.Load(cleanPid(s))
 	if exist {
@@ -53,6 +56,7 @@ func processAuth(message Message, conn *net.Conn, curClient *Client, id string) 
 			clients.Delete(cleanPid(s))
 			c.Pid = ""
 			c.Pass = ""
+			c.Profile = nil
 			logAdd(MESS_INFO, id + " удалили дубль")
 			exist = false;
 		}

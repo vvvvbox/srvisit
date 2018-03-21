@@ -78,7 +78,11 @@ func mainHandler(conn *net.Conn) {
 		//обрабатываем полученное сообщение
 		if len(processing) > message.TMessage{
 			if processing[message.TMessage].Processing != nil{
-				processing[message.TMessage].Processing(message, conn, &curClient, id)
+				if message.TMessage < TMESS_AGENT_AUTH {
+					processing[message.TMessage].Processing(message, conn, &curClient, id)
+				}else{
+					go processing[message.TMessage].Processing(message, conn, &curClient, id) //от одного агента может много приходить сообщений, не тормозим их
+				}
 			} else {
 				logAdd(MESS_INFO, id + " нет обработчика для сообщения")
 				time.Sleep(time.Millisecond * WAIT_IDLE)
@@ -91,28 +95,39 @@ func mainHandler(conn *net.Conn) {
 	}
 	(*conn).Close()
 
-	//удалим себя из профиля если авторизованы
-	if curClient.Profile != nil {
-		curClient.Profile.clients.Delete(cleanPid(curClient.Pid))
-	}
+	if curClient.Type == CLIENT_PEER {
+		//
+		if curClient.Pid != "" {
+			clients.Delete(cleanPid(curClient.Pid))
+		}
 
-	//пробежимся по профилям где мы есть и отправим новый статус
-	curClient.profiles.Range(func (key interface {}, value interface {}) bool {
-		profile := *value.(*Profile)
+		//удалим себя из профиля если авторизованы
+		if curClient.Profile != nil {
+			curClient.Profile.clients.Delete(cleanPid(curClient.Pid))
+		}
 
-		//все кто авторизовался в этот профиль должен получить новый статус
-		profile.clients.Range(func (key interface {}, value interface{}) bool {
-			client := value.(*Client)
-			sendMessage(client.Conn, TMESS_STATUS, cleanPid(curClient.Pid), "0")
+		//пробежимся по профилям где мы есть и отправим новый статус
+		curClient.profiles.Range(func(key interface{}, value interface{}) bool {
+			profile := *value.(*Profile)
+
+			//все кто авторизовался в этот профиль должен получить новый статус
+			profile.clients.Range(func(key interface{}, value interface{}) bool {
+				client := value.(*Client)
+				sendMessage(client.Conn, TMESS_STATUS, cleanPid(curClient.Pid), "0")
+				return true
+			})
+
 			return true
 		})
 
-		return true
-	})
+		logAdd(MESS_INFO, id+" mainServer потерял соединение с пиром")
+	} else if curClient.Type == CLIENT_AGENT {
+		//
+		if curClient.Node != nil {
+			nodes.Delete(curClient.Node.Id)
+		}
 
-	logAdd(MESS_INFO, id + " mainServer потерял соединение")
-	if curClient.Pid != "" {
-		clients.Delete(cleanPid(curClient.Pid))
+		logAdd(MESS_INFO, id+" mainServer потерял соединение с агентом")
 	}
 }
 
@@ -241,12 +256,10 @@ func dataHandler(conn *net.Conn) {
 }
 
 func disconnectPeers(code string) {
-	if options.Mode == MASTER {
-		sendMessageToNodes(TMESS_AGENT_DEL_CODE, code)
-	} else {
-		value, exists := channels.Load(code)
-		if exists {
-			channels.Delete(code)
+	value, exists := channels.Load(code)
+	if exists {
+		channels.Delete(code)
+		if options.Mode != MASTER {
 			pair := value.(*dConn)
 			if pair.pointer[0] != nil {
 				(*pair.pointer[0]).Close()
@@ -256,13 +269,17 @@ func disconnectPeers(code string) {
 			}
 		}
 	}
+
+	if options.Mode == MASTER {
+		sendMessageToNodes(TMESS_AGENT_DEL_CODE, code)
+	}
 }
 
 func connectPeers(code string) {
+	var newConnection dConn
+	channels.Store(code, &newConnection)
+
 	if options.Mode == MASTER {
 		sendMessageToNodes(TMESS_AGENT_ADD_CODE, code)
-	} else {
-		var newConnection dConn
-		channels.Store(code, &newConnection)
 	}
 }

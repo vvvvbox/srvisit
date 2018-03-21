@@ -18,7 +18,7 @@ func nodeClient(){
 	logAdd(MESS_INFO, "nodeClient запустился")
 
 	for {
-		conn, err := net.Dial("tcp", options.MasterServer+":"+options.MainServerPort)
+		conn, err := net.Dial("tcp", options.MasterServer + ":" + options.MainServerPort)
 		if err != nil {
 			logAdd(MESS_ERROR, "nodeClient не смог подключиться: " + fmt.Sprint(err))
 			time.Sleep(time.Second * WAIT_IDLE_AGENT)
@@ -88,8 +88,13 @@ func nodeClient(){
 }
 
 func processAgentAuth(message Message, conn *net.Conn, curClient *Client, id string) {
-	if options.Mode != MASTER {
+	if options.Mode == REGULAR {
 		logAdd(MESS_ERROR, id + " режим не поддерживающий агентов")
+		return
+	}
+
+	if options.Mode == NODE {
+		logAdd(MESS_ERROR, id + " пришел отзыв на авторизацию")
 		return
 	}
 
@@ -107,6 +112,9 @@ func processAgentAuth(message Message, conn *net.Conn, curClient *Client, id str
 	node.Name = message.Messages[0]
 	node.Id = randomString(MAX_LEN_ID_NODE)
 	node.Ip = (*conn).RemoteAddr().String()
+
+	curClient.Type = CLIENT_AGENT
+	curClient.Node = &node
 
 	if sendMessage(conn, TMESS_AGENT_AUTH, node.Id){
 		nodes.Store(node.Id, &node)
@@ -163,34 +171,65 @@ func processAgentNewConnect(message Message, conn *net.Conn, curClient *Client, 
 		return
 	}
 
-	logAdd(MESS_INFO, id + " пришла информация об новом соединения")
+	logAdd(MESS_INFO, id + " пришла информация о новом соединения")
 
 	if len(message.Messages) != 1 {
 		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
 		return
 	}
 
+	code := message.Messages[0]
+
+	if curClient.Node == nil {
+		logAdd(MESS_ERROR, id + " агент без авторизации?!")
+		return
+	}
+	node := curClient.Node
+
+	value, exist := channels.Load(code)
+	if exist == false {
+		logAdd(MESS_ERROR, id + " не ждем такого соединения " + code)
+		disconnectPeers(code)
+		return
+	}
+	peers := value.(*dConn)
+
+	peers.mutex.Lock()
+	if peers.node[0] == nil {
+		peers.node[0] = node
+	} else if peers.pointer[1] == nil {
+		peers.node[1] = node
+	}
+	peers.mutex.Unlock()
+
 	//мы должны дождаться два соединения
-	//если они у одного агента, то ничего
-	//если они у разных агентов, то одному надо отправить команду подключиться к другому
-
-	value, exist := channels.Load(message.Messages[0])
-	if exist {
-		peers := value.(*dConn)
-		peers.mutex.Lock()
-		//var numPeer int
-		//if peers.node[0] == nil {
-		//	peers.node[0] = conn
-		//	numPeer = 1
-		//} else if peers.pointer[1] == nil {
-		//	peers.node[1] = conn
-		//	numPeer = 0
-		//}
-		peers.mutex.Unlock()
-
+	var cWait = 0
+	for (peers.node[0] == nil || peers.node[1] == nil) && cWait < WAIT_COUNT {
+		logAdd(MESS_INFO, id + " ожидаем пира для " + code)
+		time.Sleep(time.Millisecond * WAIT_IDLE)
+		cWait++
 	}
 
-	disconnectPeers(message.Messages[0])
+	//если не дождались одного из пира
+	for peers.node[0] == nil || peers.node[1] == nil {
+		logAdd(MESS_ERROR, id + " не дождались пира для " + code)
+		disconnectPeers(code)
+		return
+	}
+
+	//если они у одного агента, то ничего
+	if peers.node[0].Id == peers.node[1].Id {
+		logAdd(MESS_INFO, id + " пиры у одного агента " + code)
+		return
+	}
+
+	//если они у разных агентов, то одному надо отправить команду подключиться к другому
+	if !sendMessage(peers.node[0].Conn, TMESS_AGENT_CONNECT, code, peers.node[1].Ip) {
+		logAdd(MESS_ERROR, id + " не получилось отправить запрос на соединение к агенту " + code)
+		disconnectPeers(code)
+	}
+
+	logAdd(MESS_INFO, id + " отправили запрос на соединение агента к агенту " + code)
 }
 
 func processAgentDelConnect(message Message, conn *net.Conn, curClient *Client, id string) {
@@ -253,10 +292,10 @@ func processAgentConnect(message Message, conn *net.Conn, curClient *Client, id 
 func sendMessageToNodes(TMessage int, Messages... string) {
 	nodes.Range(func(key interface{}, value interface{}) bool{
 		node := value.(*Node);
-		return sendMessage(node.Conn, TMessage, Messages...);
+		return sendMessage(node.Conn, TMessage, Messages...)
 	})
 }
 
 func sendMessageToMaster(TMessage int, Messages... string) {
-	sendMessage(master, TMessage, Messages...);
+	sendMessage(master, TMessage, Messages...)
 }

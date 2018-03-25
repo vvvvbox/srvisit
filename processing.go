@@ -42,8 +42,6 @@ func processAuth(message Message, conn *net.Conn, curClient *Client, id string) 
 	logAdd(MESS_INFO, id + " сгенерировали pid")
 
 	salt := randomString(LEN_SALT)
-	curClient.Type = CLIENT_PEER
-	curClient.Node = nil
 
 	value, exist := clients.Load(cleanPid(s))
 	if exist {
@@ -100,7 +98,7 @@ func processNotification(message Message, conn *net.Conn, curClient *Client, id 
 	}
 }
 
-func processConnectRaw(message Message, conn *net.Conn, curClient *Client, id string) {
+func processConnect(message Message, conn *net.Conn, curClient *Client, id string) {
 	logAdd(MESS_INFO, id + " обрабатываем запрос на подключение")
 
 	if len(message.Messages) < 2 {
@@ -137,18 +135,6 @@ func processConnectRaw(message Message, conn *net.Conn, curClient *Client, id st
 		logAdd(MESS_INFO, id + " нет такого пира")
 		sendMessage(curClient.Conn, TMESS_NOTIFICATION, "Нет такого пира")
 	}
-
-}
-
-func processConnect(message Message, conn *net.Conn, curClient *Client, id string) {
-	logAdd(MESS_INFO, id + " пришел запрос на подключение")
-
-	if len(message.Messages) != 2 {
-		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
-		return
-	}
-
-	processConnectRaw(message, conn, curClient, id)
 }
 
 func processDisconnect(message Message, conn *net.Conn, curClient *Client, id string) {
@@ -359,7 +345,7 @@ func processConnectContact(message Message, conn *net.Conn, curClient *Client, i
 	if err == nil {
 		p := getContact(profile.Contacts, i)
 		if p != nil {
-			processConnectRaw(createMessage(TMESS_CONNECT, p.Pid, p.Digest, p.Salt), conn, curClient, id)
+			processConnect(createMessage(TMESS_CONNECT, p.Pid, p.Digest, p.Salt), conn, curClient, id)
 		} else {
 			logAdd(MESS_ERROR, id + " нет такого контакта в профиле")
 			sendMessage(conn, TMESS_NOTIFICATION, "Нет такого контакта в профиле!")

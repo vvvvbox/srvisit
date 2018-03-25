@@ -37,6 +37,10 @@ func main(){
 		go dataServer() //обработка потоков данных от клиентов
 	}
 
+	if options.Mode == MASTER {
+		go masterServer() //общаемся с агентами
+	}
+
 	if options.Mode == NODE {
 		go nodeClient()	//клинет подключающийся к мастеру
 	}

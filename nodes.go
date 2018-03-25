@@ -11,14 +11,98 @@ import (
 	"os"
 )
 
+func masterServer(){
+	logAdd(MESS_INFO, "masterServer запустился")
 
+	ln, err := net.Listen("tcp", ":" + options.MasterPort)
+	if err != nil {
+		logAdd(MESS_ERROR, "masterServer не смог занять порт")
+		os.Exit(1)
+	}
+
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			logAdd(MESS_ERROR, "masterServer не смог занять сокет")
+			break
+		}
+
+		go ping(&conn)
+		go masterHandler(&conn)
+	}
+
+	ln.Close()
+	logAdd(MESS_INFO, "masterServer остановился")
+}
+
+func masterHandler(conn *net.Conn) {
+	id := randomString(MAX_LEN_ID_LOG)
+	logAdd(MESS_INFO, id + " masterServer получил соединение")
+
+	var curNode Node
+
+	reader := bufio.NewReader(*conn)
+
+	for {
+		buff, err := reader.ReadBytes('}')
+
+		if err != nil {
+			logAdd(MESS_ERROR, id + " ошибка чтения буфера")
+			break
+		}
+
+		logAdd(MESS_DETAIL, id + fmt.Sprint(" buff (" + strconv.Itoa(len(buff)) + "): " + string(buff)))
+
+		//удаляем мусор
+		if buff[0] != '{' {
+			logAdd(MESS_INFO, id + " masterServer удаляем мусор")
+			if bytes.Index(buff, []byte("{")) >= 0 {
+				buff = buff[bytes.Index(buff, []byte("{")):]
+			} else {
+				continue
+			}
+		}
+
+		var message Message
+		err = json.Unmarshal(buff, &message)
+		if err != nil {
+			logAdd(MESS_ERROR, id + " ошибка разбора json")
+			time.Sleep(time.Millisecond * WAIT_IDLE)
+			continue
+		}
+
+		logAdd(MESS_DETAIL, id + " " + fmt.Sprint(message))
+
+		//обрабатываем полученное сообщение
+		if len(processingAgent) > message.TMessage{
+			if processingAgent[message.TMessage].Processing != nil{
+				go processingAgent[message.TMessage].Processing(message, conn, &curNode, id) //от одного агента может много приходить сообщений, не тормозим их
+			} else {
+				logAdd(MESS_INFO, id + " нет обработчика для сообщения")
+				time.Sleep(time.Millisecond * WAIT_IDLE)
+			}
+		} else {
+			logAdd(MESS_INFO, id + " неизвестное сообщение")
+			time.Sleep(time.Millisecond * WAIT_IDLE)
+		}
+
+	}
+	(*conn).Close()
+
+	//если есть id значит скорее всего есть в карте
+	if len(curNode.Id) == 0 {
+		nodes.Delete(curNode.Id)
+	}
+
+	logAdd(MESS_INFO, id + " masterServer потерял соединение с агентом")
+}
 
 func nodeClient(){
 
 	logAdd(MESS_INFO, "nodeClient запустился")
 
 	for {
-		conn, err := net.Dial("tcp", options.MasterServer + ":" + options.MainServerPort)
+		conn, err := net.Dial("tcp", options.MasterServer + ":" + options.MasterPort)
 		if err != nil {
 			logAdd(MESS_ERROR, "nodeClient не смог подключиться: " + fmt.Sprint(err))
 			time.Sleep(time.Second * WAIT_IDLE_AGENT)
@@ -31,10 +115,9 @@ func nodeClient(){
 		if err != nil {
 			hostname = randomString(MAX_LEN_ID_NODE)
 		}
-		sendMessage(&conn, TMESS_AGENT_AUTH, hostname)
+		sendMessage(&conn, TMESS_AGENT_AUTH, hostname, options.MasterPassword)
 
 		go ping(&conn)
-
 
 		reader := bufio.NewReader(conn)
 		for {
@@ -69,9 +152,9 @@ func nodeClient(){
 			logAdd(MESS_DETAIL, fmt.Sprint(message))
 
 			//обрабатываем полученное сообщение
-			if len(processing) > message.TMessage {
-				if processing[message.TMessage].Processing != nil {
-					processing[message.TMessage].Processing(message, &conn, nil, randomString(MAX_LEN_ID_LOG))
+			if len(processingAgent) > message.TMessage {
+				if processingAgent[message.TMessage].Processing != nil {
+					go processingAgent[message.TMessage].Processing(message, &conn, nil, randomString(MAX_LEN_ID_LOG))
 				} else {
 					logAdd(MESS_INFO, "nodeClient нет обработчика для сообщения")
 					time.Sleep(time.Millisecond * WAIT_IDLE)
@@ -87,9 +170,12 @@ func nodeClient(){
 	logAdd(MESS_INFO, "nodeClient остановился")
 }
 
-func processAgentAuth(message Message, conn *net.Conn, curClient *Client, id string) {
+func processAgentAuth(message Message, conn *net.Conn, curNode *Node, id string) {
+	logAdd(MESS_INFO, id + " пришла авторизация агента")
+
 	if options.Mode == REGULAR {
 		logAdd(MESS_ERROR, id + " режим не поддерживающий агентов")
+		(*conn).Close()
 		return
 	}
 
@@ -98,31 +184,32 @@ func processAgentAuth(message Message, conn *net.Conn, curClient *Client, id str
 		return
 	}
 
-	logAdd(MESS_INFO, id + " пришла авторизация агента")
-
 	time.Sleep(time.Millisecond * WAIT_IDLE)
 
-	if len(message.Messages) != 1 {
+	if len(message.Messages) != 2 {
 		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
+		(*conn).Close()
 		return
 	}
 
-	var node Node
-	node.Conn = conn
-	node.Name = message.Messages[0]
-	node.Id = randomString(MAX_LEN_ID_NODE)
-	node.Ip = (*conn).RemoteAddr().String()
+	if message.Messages[1] != options.MasterPassword {
+		logAdd(MESS_ERROR, id + " не правильный пароль")
+		(*conn).Close()
+		return
+	}
 
-	curClient.Type = CLIENT_AGENT
-	curClient.Node = &node
+	curNode.Conn = conn
+	curNode.Name = message.Messages[0]
+	curNode.Id = randomString(MAX_LEN_ID_NODE)
+	curNode.Ip = (*conn).RemoteAddr().String()
 
-	if sendMessage(conn, TMESS_AGENT_AUTH, node.Id){
-		nodes.Store(node.Id, &node)
+	if sendMessage(conn, TMESS_AGENT_AUTH, curNode.Id){
+		nodes.Store(curNode.Id, curNode)
 		logAdd(MESS_INFO, id + " авторизация агента успешна")
 	}
 }
 
-func processAgentAnswer(message Message, conn *net.Conn, curClient *Client, id string) {
+func processAgentAnswer(message Message, conn *net.Conn, curNode *Node, id string) {
 	if options.Mode != NODE {
 		logAdd(MESS_ERROR, id + " режим не поддерживающий агентов")
 		return
@@ -133,7 +220,7 @@ func processAgentAnswer(message Message, conn *net.Conn, curClient *Client, id s
 	//todo добавить обработку
 }
 
-func processAgentAddCode(message Message, conn *net.Conn, curClient *Client, id string) {
+func processAgentAddCode(message Message, conn *net.Conn, curNode *Node, id string) {
 	if options.Mode != NODE {
 		logAdd(MESS_ERROR, id + " режим не поддерживающий агентов")
 		return
@@ -149,7 +236,7 @@ func processAgentAddCode(message Message, conn *net.Conn, curClient *Client, id 
 	connectPeers(message.Messages[0])
 }
 
-func processAgentDelCode(message Message, conn *net.Conn, curClient *Client, id string) {
+func processAgentDelCode(message Message, conn *net.Conn, curNode *Node, id string) {
 	if options.Mode != NODE {
 		logAdd(MESS_ERROR, id + " режим не поддерживающий агентов")
 		return
@@ -165,7 +252,7 @@ func processAgentDelCode(message Message, conn *net.Conn, curClient *Client, id 
 	disconnectPeers(message.Messages[0])
 }
 
-func processAgentNewConnect(message Message, conn *net.Conn, curClient *Client, id string) {
+func processAgentNewConnect(message Message, conn *net.Conn, curNode *Node, id string) {
 	if options.Mode != MASTER {
 		logAdd(MESS_ERROR, id + " режим не поддерживающий агентов")
 		return
@@ -180,12 +267,6 @@ func processAgentNewConnect(message Message, conn *net.Conn, curClient *Client, 
 
 	code := message.Messages[0]
 
-	if curClient.Node == nil {
-		logAdd(MESS_ERROR, id + " агент без авторизации?!")
-		return
-	}
-	node := curClient.Node
-
 	value, exist := channels.Load(code)
 	if exist == false {
 		logAdd(MESS_ERROR, id + " не ждем такого соединения " + code)
@@ -196,9 +277,9 @@ func processAgentNewConnect(message Message, conn *net.Conn, curClient *Client, 
 
 	peers.mutex.Lock()
 	if peers.node[0] == nil {
-		peers.node[0] = node
+		peers.node[0] = curNode
 	} else if peers.pointer[1] == nil {
-		peers.node[1] = node
+		peers.node[1] = curNode
 	}
 	peers.mutex.Unlock()
 
@@ -232,7 +313,7 @@ func processAgentNewConnect(message Message, conn *net.Conn, curClient *Client, 
 	logAdd(MESS_INFO, id + " отправили запрос на соединение агента к агенту " + code)
 }
 
-func processAgentDelConnect(message Message, conn *net.Conn, curClient *Client, id string) {
+func processAgentDelConnect(message Message, conn *net.Conn, curNode *Node, id string) {
 	if options.Mode != MASTER {
 		logAdd(MESS_ERROR, id + " режим не поддерживающий агентов")
 		return
@@ -248,7 +329,7 @@ func processAgentDelConnect(message Message, conn *net.Conn, curClient *Client, 
 	disconnectPeers(message.Messages[0])
 }
 
-func processAgentAddBytes(message Message, conn *net.Conn, curClient *Client, id string) {
+func processAgentAddBytes(message Message, conn *net.Conn, curNode *Node, id string) {
 	if options.Mode != MASTER {
 		logAdd(MESS_ERROR, id + " режим не поддерживающий агентов")
 		return
@@ -267,7 +348,7 @@ func processAgentAddBytes(message Message, conn *net.Conn, curClient *Client, id
 	}
 }
 
-func processAgentConnect(message Message, conn *net.Conn, curClient *Client, id string) {
+func processAgentConnect(message Message, conn *net.Conn, curNode *Node, id string) {
 	if options.Mode != NODE {
 		logAdd(MESS_ERROR, id + " режим не поддерживающий агентов")
 		return

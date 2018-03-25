@@ -78,11 +78,7 @@ func mainHandler(conn *net.Conn) {
 		//обрабатываем полученное сообщение
 		if len(processing) > message.TMessage{
 			if processing[message.TMessage].Processing != nil{
-				if message.TMessage < TMESS_AGENT_AUTH {
-					processing[message.TMessage].Processing(message, conn, &curClient, id)
-				}else{
-					go processing[message.TMessage].Processing(message, conn, &curClient, id) //от одного агента может много приходить сообщений, не тормозим их
-				}
+				processing[message.TMessage].Processing(message, conn, &curClient, id)
 			} else {
 				logAdd(MESS_INFO, id + " нет обработчика для сообщения")
 				time.Sleep(time.Millisecond * WAIT_IDLE)
@@ -95,40 +91,31 @@ func mainHandler(conn *net.Conn) {
 	}
 	(*conn).Close()
 
-	if curClient.Type == CLIENT_PEER {
-		//
-		if curClient.Pid != "" {
-			clients.Delete(cleanPid(curClient.Pid))
-		}
+	//
+	if curClient.Pid != "" {
+		clients.Delete(cleanPid(curClient.Pid))
+	}
 
-		//удалим себя из профиля если авторизованы
-		if curClient.Profile != nil {
-			curClient.Profile.clients.Delete(cleanPid(curClient.Pid))
-		}
+	//удалим себя из профиля если авторизованы
+	if curClient.Profile != nil {
+		curClient.Profile.clients.Delete(cleanPid(curClient.Pid))
+	}
 
-		//пробежимся по профилям где мы есть и отправим новый статус
-		curClient.profiles.Range(func(key interface{}, value interface{}) bool {
-			profile := *value.(*Profile)
+	//пробежимся по профилям где мы есть и отправим новый статус
+	curClient.profiles.Range(func(key interface{}, value interface{}) bool {
+		profile := *value.(*Profile)
 
-			//все кто авторизовался в этот профиль должен получить новый статус
-			profile.clients.Range(func(key interface{}, value interface{}) bool {
-				client := value.(*Client)
-				sendMessage(client.Conn, TMESS_STATUS, cleanPid(curClient.Pid), "0")
-				return true
-			})
-
+		//все кто авторизовался в этот профиль должен получить новый статус
+		profile.clients.Range(func(key interface{}, value interface{}) bool {
+			client := value.(*Client)
+			sendMessage(client.Conn, TMESS_STATUS, cleanPid(curClient.Pid), "0")
 			return true
 		})
 
-		logAdd(MESS_INFO, id+" mainServer потерял соединение с пиром")
-	} else if curClient.Type == CLIENT_AGENT {
-		//
-		if curClient.Node != nil {
-			nodes.Delete(curClient.Node.Id)
-		}
+		return true
+	})
 
-		logAdd(MESS_INFO, id+" mainServer потерял соединение с агентом")
-	}
+	logAdd(MESS_INFO, id + " mainServer потерял соединение с пиром")
 }
 
 func dataServer(){

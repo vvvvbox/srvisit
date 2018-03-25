@@ -37,10 +37,6 @@ const(
 	MESS_DETAIL = 3
 	MESS_FULL   = 4
 
-	//виды клиентов
-	CLIENT_PEER = 0
-	CLIENT_AGENT = 1
-
 	//виды сообщений
 	TMESS_DEAUTH = 0				//деаутентификация()
 	TMESS_VERSION = 1				//запрос версии
@@ -63,14 +59,15 @@ const(
 	TMESS_PING = 18					//проверка состояния подключения
 	TMESS_CONTACT_REVERSE = 19		//добавление себя в чужой профиль
 
-	TMESS_AGENT_AUTH = 20
-	TMESS_AGENT_ANSWER = 21
-	TMESS_AGENT_ADD_CODE = 22
-	TMESS_AGENT_DEL_CODE = 23
-	TMESS_AGENT_NEW_CONNECT = 24
-	TMESS_AGENT_DEL_CONNECT = 25
-	TMESS_AGENT_ADD_BYTES = 26
-	TMESS_AGENT_CONNECT = 27
+	TMESS_AGENT_DEAUTH = 0
+	TMESS_AGENT_AUTH = 1
+	TMESS_AGENT_ANSWER = 2
+	TMESS_AGENT_ADD_CODE = 3
+	TMESS_AGENT_DEL_CODE = 4
+	TMESS_AGENT_NEW_CONNECT = 5
+	TMESS_AGENT_DEL_CONNECT = 6
+	TMESS_AGENT_ADD_BYTES = 7
+	TMESS_AGENT_CONNECT = 8
 
 	REGULAR = 0
 	MASTER  = 1
@@ -93,6 +90,8 @@ var(
 		Mode:           REGULAR,
 		FDebug:         true,
 		MasterServer:	"data.rvisit.net",
+		MasterPort:		"65470",
+		MasterPassword:	"master",
 	}
 
 	//считаем всякую бесполезную информацию или нет
@@ -186,8 +185,10 @@ var(
 		{TMESS_INFO_ANSWER, processInfoAnswer},
 		{TMESS_MANAGE, processManage},
 		{TMESS_PING, processPing},
-		{TMESS_CONTACT_REVERSE, processContactReverse},
+		{TMESS_CONTACT_REVERSE, processContactReverse} }
 
+	processingAgent = []ProcessingAgent{
+		{TMESS_AGENT_DEAUTH, nil},
 		{TMESS_AGENT_AUTH, processAgentAuth},
 		{TMESS_AGENT_ANSWER, processAgentAnswer},
 		{TMESS_AGENT_ADD_CODE, processAgentAddCode},
@@ -235,6 +236,11 @@ type ProcessingWeb struct {
 	Processing func(w http.ResponseWriter, r *http.Request)
 }
 
+type ProcessingAgent struct {
+	TMessage int
+	Processing func(message Message, conn *net.Conn, curNode *Node, id string)
+}
+
 type ProcessingMessage struct {
 	TMessage int
 	Processing func(message Message, conn *net.Conn, curClient *Client, id string)
@@ -273,6 +279,8 @@ type Options struct {
 
 	//мастер сервер, если он нужен
 	MasterServer	string
+	MasterPort		string
+	MasterPassword	string
 
 	//очевидно что флаг для отладки
 	FDebug		bool
@@ -328,9 +336,6 @@ type Client struct {
 
 	Conn	*net.Conn
 	Code 	string //for connection
-	Type    int
-
-	Node	*Node
 
 	profiles sync.Map //профили которые содержат этого клиента в контактах(используем для отправки им информации о своем статусе)
 }

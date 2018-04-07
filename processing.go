@@ -59,6 +59,7 @@ func processAuth(message Message, conn *net.Conn, curClient *Client, id string) 
 			exist = false;
 		}
 	}
+
 	if !exist {
 		if sendMessage(conn, TMESS_AUTH, s, salt){
 
@@ -228,6 +229,9 @@ func processContact(message Message, conn *net.Conn, curClient *Client, id strin
 
 	i, err := strconv.Atoi(message.Messages[0])
 	if err == nil {
+		profile.mutex.Lock()
+		defer profile.mutex.Unlock()
+
 		if i == -1 {
 			i = getNewId(profile.Contacts)
 		}

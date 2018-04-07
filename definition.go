@@ -345,6 +345,7 @@ type Profile struct {
 	Pass	string
 
 	Contacts *Contact
+	mutex	sync.Mutex
 
 	clients	sync.Map //клиенты которые авторизовались в этот профиль(используем для отправки им информации о статусе или изменений контактов)
 

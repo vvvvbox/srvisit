@@ -42,22 +42,27 @@
 						Трафик по часам суток
 						<div class="ct-chart ct-perfect-fourth" id="chart1"></div>
 						<div class="ct-chart ct-perfect-fourth" id="chart2"></div>
+						<div class="ct-chart ct-perfect-fourth" id="chart11"></div>
 
 						Трафик по дням недели
 						<div class="ct-chart ct-perfect-fourth" id="chart3"></div>
 						<div class="ct-chart ct-perfect-fourth" id="chart4"></div>
+						<div class="ct-chart ct-perfect-fourth" id="chart12"></div>
 
 						Трафик по дням месяца
 						<div class="ct-chart ct-perfect-fourth" id="chart5"></div>
 						<div class="ct-chart ct-perfect-fourth" id="chart6"></div>
+						<div class="ct-chart ct-perfect-fourth" id="chart13"></div>
 
 						Трафик по дням года
 						<div class="ct-chart ct-perfect-fourth" id="chart7"></div>
 						<div class="ct-chart ct-perfect-fourth" id="chart8"></div>
+						<div class="ct-chart ct-perfect-fourth" id="chart14"></div>
 
 						Трафик по месяцам
 						<div class="ct-chart ct-perfect-fourth" id="chart9"></div>
 						<div class="ct-chart ct-perfect-fourth" id="chart10"></div>
+						<div class="ct-chart ct-perfect-fourth" id="chart15"></div>
 					</td>
 				</tr>
 				
@@ -101,6 +106,11 @@
 				series: [$values02]
 			};
 			
+			var clients1 = {
+				labels: $headers01,
+				series: [$values21]
+			};
+			
 			//по дням недели
 			var data3 = {
 				labels: $headers02,
@@ -110,6 +120,11 @@
 			var data4 = {
 				labels: $headers02,
 				series: [$values04]
+			};
+			
+			var clients2 = {
+				labels: $headers02,
+				series: [$values22]
 			};
 
 			//по дням месяца
@@ -121,6 +136,11 @@
 			var data6 = {
 				labels: $headers03,
 				series: [$values06]
+			};
+			
+			var clients3 = {
+				labels: $headers03,
+				series: [$values23]
 			};
 
 			//по дням года
@@ -134,6 +154,11 @@
 				series: [$values08]
 			};
 			
+			var clients4 = {
+				labels: $headers04,
+				series: [$values24]
+			};
+			
 			//по месяцам
 			var data9 = {
 				labels: $headers05,
@@ -143,6 +168,11 @@
 			var data10 = {
 				labels: $headers05,
 				series: [$values10]
+			};
+			
+			var clients5 = {
+				labels: $headers05,
+				series: [$values25]
 			};
 			
 			var options1 = {
@@ -213,19 +243,23 @@
 			
 			new Chartist.Line('#chart1', data1, options1);
 			new Chartist.Line('#chart2', data2, options2);
+			new Chartist.Line('#chart11', clients1, options2);
 			
 			new Chartist.Line('#chart3', data3, options1);
 			new Chartist.Line('#chart4', data4, options2);
+			new Chartist.Line('#chart12', clients2, options2);
 			
 			new Chartist.Line('#chart5', data5, options1);
 			new Chartist.Line('#chart6', data6, options2);
+			new Chartist.Line('#chart13', clients3, options2);
 			
 			new Chartist.Line('#chart7', data7, options3);
 			new Chartist.Line('#chart8', data8, options4);
+			new Chartist.Line('#chart14', clients4, options4);
 			
 			new Chartist.Line('#chart9', data9, options1);
 			new Chartist.Line('#chart10', data10, options2);
-			
+			new Chartist.Line('#chart15', clients5, options2);
 			
 		</script>
 		

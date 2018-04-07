@@ -474,6 +474,8 @@ func loadCounters(){
 	} else {
 		logAdd(MESS_ERROR, "Не получилось загрузить счетчики: " + fmt.Sprint(err))
 	}
+
+	counterData.CounterClients[int(counterData.currentPos.Hour())] = 0
 }
 
 func addCounter(bytes uint64) {
@@ -500,6 +502,37 @@ func addCounter(bytes uint64) {
 	counterData.CounterMonthConnections[int(counterData.currentPos.Month() - 1)] = counterData.CounterMonthConnections[int(counterData.currentPos.Month() - 1)] + 1
 }
 
+func updateCounterClient(add bool) {
+
+	counterData.mutex.Lock()
+	defer counterData.mutex.Unlock()
+
+	if add {
+		counterData.CounterClients[int(counterData.currentPos.Hour())] = counterData.CounterClients[int(counterData.currentPos.Hour())] + 1
+	} else {
+		counterData.CounterClients[int(counterData.currentPos.Hour())] = counterData.CounterClients[int(counterData.currentPos.Hour())] - 1
+		return
+	}
+
+	count := counterData.CounterClients[int(counterData.currentPos.Hour())]
+
+	if counterData.CounterDayWeekClients[int(counterData.currentPos.Weekday())] < count {
+		counterData.CounterDayWeekClients[int(counterData.currentPos.Weekday())] = count
+	}
+
+	if counterData.CounterDayClients[int(counterData.currentPos.Day() - 1)] < count {
+		counterData.CounterDayClients[int(counterData.currentPos.Day() - 1)] = count
+	}
+
+	if counterData.CounterDayYearClients[int(counterData.currentPos.YearDay() - 1)] < count {
+		counterData.CounterDayYearClients[int(counterData.currentPos.YearDay() - 1)] = count
+	}
+
+	if counterData.CounterMonthClients[int(counterData.currentPos.Month() - 1)] < count {
+		counterData.CounterMonthClients[int(counterData.currentPos.Month() - 1)] = count
+	}
+}
+
 func swiftCounter() {
 	counterData.mutex.Lock()
 	defer counterData.mutex.Unlock()
@@ -508,20 +541,25 @@ func swiftCounter() {
 		now := time.Now()
 		counterData.CounterBytes[time.Now().Hour()] = 0
 		counterData.CounterConnections[time.Now().Hour()] = 0
+		counterData.CounterClients[time.Now().Hour()] = counterData.CounterClients[counterData.currentPos.Hour()]
 
 		if time.Now().Day() != counterData.currentPos.Day(){
 			counterData.CounterDayWeekBytes[int(time.Now().Weekday())] = 0
 			counterData.CounterDayWeekConnections[int(time.Now().Weekday())] = 0
+			counterData.CounterDayWeekClients[time.Now().Weekday()] = counterData.CounterDayWeekClients[counterData.currentPos.Weekday()]
 
 			counterData.CounterDayBytes[int(time.Now().Day() - 1)] = 0
 			counterData.CounterDayConnections[int(time.Now().Day() - 1)] = 0
+			counterData.CounterDayClients[time.Now().Day() - 1] = counterData.CounterDayClients[counterData.currentPos.Day() - 1]
 
 			counterData.CounterDayYearBytes[int(time.Now().YearDay() - 1)] = 0
 			counterData.CounterDayYearConnections[int(time.Now().YearDay() - 1)] = 0
+			counterData.CounterDayYearClients[time.Now().YearDay() - 1] = counterData.CounterDayYearClients[counterData.currentPos.YearDay() - 1]
 
 			if time.Now().Month() != counterData.currentPos.Month() {
 				counterData.CounterMonthBytes[int(time.Now().Month() - 1)] = 0
 				counterData.CounterMonthConnections[int(time.Now().Month() - 1)] = 0
+				counterData.CounterMonthClients[time.Now().Month() - 1] = counterData.CounterMonthClients[counterData.currentPos.Month() - 1]
 			}
 		}
 

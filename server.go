@@ -41,6 +41,9 @@ func mainHandler(conn *net.Conn) {
 	id := randomString(MAX_LEN_ID_LOG)
 	logAdd(MESS_INFO, id + " mainServer получил соединение")
 
+	//обновим счетчик клиентов
+	updateCounterClient(true)
+
 	var curClient Client
 
 	reader := bufio.NewReader(*conn)
@@ -114,6 +117,9 @@ func mainHandler(conn *net.Conn) {
 
 		return true
 	})
+
+	//обновим счетчик клиентов
+	updateCounterClient(false)
 
 	logAdd(MESS_INFO, id + " mainServer потерял соединение с пиром")
 }

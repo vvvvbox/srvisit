@@ -138,22 +138,28 @@ func handleResources(w http.ResponseWriter, r *http.Request) {
 		dConn := value.(*dConn)
 
 		if dConn.pointer[0] != nil {
-			connectionsString = connectionsString + fmt.Sprint((*dConn.pointer[0]).RemoteAddr(), " <-> ", (*dConn.pointer[0]).LocalAddr() )
+			connectionsString = connectionsString + fmt.Sprint( (*dConn.pointer[0]).RemoteAddr(), " <-> ", (*dConn.pointer[0]).LocalAddr() )
 		} else {
-			if dConn.node[1] != nil {
-				connectionsString = connectionsString + fmt.Sprint(dConn.node[0].Ip, " <-> ", (*dConn.node[0].Conn).RemoteAddr() )
+			if dConn.node[0] != nil {
+				connectionsString = connectionsString + fmt.Sprint( dConn.node[0].Ip, " <-> ", (*dConn.node[0].Conn).RemoteAddr() )
 			} else {
-				connectionsString = connectionsString + fmt.Sprint("nil <-> nil")
+				connectionsString = connectionsString + fmt.Sprint( "nil <-> nil" )
 			}
 		}
 
 		if dConn.pointer[1] != nil {
-			connectionsString = connectionsString + fmt.Sprint(" <-> ", (*dConn.pointer[1]).LocalAddr(), " <-> ", (*dConn.pointer[1]).RemoteAddr() )
+			if options.Mode != REGULAR {
+				connectionsString = connectionsString + fmt.Sprint( " <-> ", (*dConn.pointer[1]).LocalAddr() )
+			}
+			connectionsString = connectionsString + fmt.Sprint( " <-> ", (*dConn.pointer[1]).RemoteAddr() )
 		} else {
 			if dConn.node[1] != nil {
-				connectionsString = connectionsString + fmt.Sprint(" <-> ", (*dConn.node[1].Conn).RemoteAddr(), " <-> ", dConn.node[1].Ip )
+				if options.Mode != REGULAR {
+					connectionsString = connectionsString + fmt.Sprint( " <-> ", (*dConn.node[1].Conn).RemoteAddr() )
+				}
+				connectionsString = connectionsString + fmt.Sprint( " <-> ", dConn.node[1].Ip )
 			} else {
-				connectionsString = connectionsString + fmt.Sprint(" <-> nil <-> nil")
+				connectionsString = connectionsString + fmt.Sprint( " <-> nil <-> nil" )
 			}
 		}
 
@@ -205,26 +211,31 @@ func handleStatistics(w http.ResponseWriter, r *http.Request) {
 		body = pageReplace(body, "$headers01", charts[0]) //по часам
 		body = pageReplace(body, "$values01", charts[1])
 		body = pageReplace(body, "$values02", charts[2])
+		body = pageReplace(body, "$values21", charts[3])
 
 		charts = getCounterDayWeek()
 		body = pageReplace(body, "$headers02", charts[0]) //по дням недели
 		body = pageReplace(body, "$values03", charts[1])
 		body = pageReplace(body, "$values04", charts[2])
+		body = pageReplace(body, "$values22", charts[3])
 
 		charts = getCounterDay()
 		body = pageReplace(body, "$headers03", charts[0]) //по дням месяца
 		body = pageReplace(body, "$values05", charts[1])
 		body = pageReplace(body, "$values06", charts[2])
+		body = pageReplace(body, "$values23", charts[3])
 
 		charts = getCounterDayYear()
 		body = pageReplace(body, "$headers04", charts[0]) //по дням года
 		body = pageReplace(body, "$values07", charts[1])
 		body = pageReplace(body, "$values08", charts[2])
+		body = pageReplace(body, "$values24", charts[3])
 
 		charts = getCounterMonth()
 		body = pageReplace(body, "$headers05", charts[0]) //по месяцам
 		body = pageReplace(body, "$values09", charts[1])
 		body = pageReplace(body, "$values10", charts[2])
+		body = pageReplace(body, "$values25", charts[3])
 
 		w.Write(body)
 		return
@@ -511,11 +522,12 @@ func checkAdminAuth(w http.ResponseWriter, r *http.Request) bool {
 
 
 
-func getCounter(bytes []uint64, connections []uint64, maxIndex int, curIndex int) []string {
+func getCounter(bytes []uint64, connections []uint64, clients []uint64, maxIndex int, curIndex int) []string {
 	h := curIndex + 1
 
 	values1 := append(bytes[h:], bytes[:h]...)
 	values2 := append(connections[h:], connections[:h]...)
+	values3 := append(clients[h:], clients[:h]...)
 
 	for i := 0; i < maxIndex; i++ {
 		values1[i] = values1[i] / 2
@@ -557,32 +569,42 @@ func getCounter(bytes []uint64, connections []uint64, maxIndex int, curIndex int
 	}
 	stringValues2 = stringValues2 + "]"
 
+	stringValues3 := "["
+	for i := 0; i < maxIndex; i++ {
+		stringValues3 = stringValues3 + fmt.Sprint(values3[i])
+		if i != maxIndex - 1 {
+			stringValues3 = stringValues3 + ", "
+		}
+	}
+	stringValues3 = stringValues3 + "]"
+
 	answer := make([]string, 0)
 	answer = append(answer, stringHeaders)
 	answer = append(answer, stringValues1)
 	answer = append(answer, stringValues2)
+	answer = append(answer, stringValues3)
 
 	return answer
 }
 
 func getCounterHour() []string {
-	return getCounter(counterData.CounterBytes[:], counterData.CounterConnections[:], 24, int(counterData.currentPos.Hour()))
+	return getCounter(counterData.CounterBytes[:], counterData.CounterConnections[:], counterData.CounterClients[:], 24, int(counterData.currentPos.Hour()))
 }
 
 func getCounterDayWeek() []string {
-	return getCounter(counterData.CounterDayWeekBytes[:], counterData.CounterDayWeekConnections[:], 7, int(counterData.currentPos.Weekday()))
+	return getCounter(counterData.CounterDayWeekBytes[:], counterData.CounterDayWeekConnections[:], counterData.CounterDayWeekClients[:], 7, int(counterData.currentPos.Weekday() - 1))
 }
 
 func getCounterDay() []string {
-	return getCounter(counterData.CounterDayBytes[:], counterData.CounterDayConnections[:], 31, int(counterData.currentPos.Day()))
+	return getCounter(counterData.CounterDayBytes[:], counterData.CounterDayConnections[:], counterData.CounterDayClients[:], 31, int(counterData.currentPos.Day() - 1))
 }
 
 func getCounterDayYear() []string {
-	return getCounter(counterData.CounterDayYearBytes[:], counterData.CounterDayYearConnections[:], 365, int(counterData.currentPos.YearDay()))
+	return getCounter(counterData.CounterDayYearBytes[:], counterData.CounterDayYearConnections[:], counterData.CounterDayYearClients[:], 365, int(counterData.currentPos.YearDay() - 1))
 }
 
 func getCounterMonth() []string {
-	return getCounter(counterData.CounterMonthBytes[:], counterData.CounterMonthConnections[:], 12, int(counterData.currentPos.Month()))
+	return getCounter(counterData.CounterMonthBytes[:], counterData.CounterMonthConnections[:], counterData.CounterMonthClients[:], 12, int(counterData.currentPos.Month() - 1))
 }
 
 func pageReplace(e []byte, a string, b string) []byte{

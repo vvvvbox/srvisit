@@ -592,7 +592,7 @@ func getCounterHour() []string {
 }
 
 func getCounterDayWeek() []string {
-	return getCounter(counterData.CounterDayWeekBytes[:], counterData.CounterDayWeekConnections[:], counterData.CounterDayWeekClients[:], 7, int(counterData.currentPos.Weekday() - 1))
+	return getCounter(counterData.CounterDayWeekBytes[:], counterData.CounterDayWeekConnections[:], counterData.CounterDayWeekClients[:], 7, int(counterData.currentPos.Weekday()))
 }
 
 func getCounterDay() []string {

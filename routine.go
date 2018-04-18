@@ -546,20 +546,20 @@ func swiftCounter() {
 		if time.Now().Day() != counterData.currentPos.Day(){
 			counterData.CounterDayWeekBytes[int(time.Now().Weekday())] = 0
 			counterData.CounterDayWeekConnections[int(time.Now().Weekday())] = 0
-			counterData.CounterDayWeekClients[time.Now().Weekday()] = counterData.CounterDayWeekClients[counterData.currentPos.Weekday()]
+			counterData.CounterDayWeekClients[time.Now().Weekday()] = counterData.CounterClients[int(counterData.currentPos.Hour())]
 
 			counterData.CounterDayBytes[int(time.Now().Day() - 1)] = 0
 			counterData.CounterDayConnections[int(time.Now().Day() - 1)] = 0
-			counterData.CounterDayClients[time.Now().Day() - 1] = counterData.CounterDayClients[counterData.currentPos.Day() - 1]
+			counterData.CounterDayClients[time.Now().Day() - 1] = counterData.CounterClients[int(counterData.currentPos.Hour())]
 
 			counterData.CounterDayYearBytes[int(time.Now().YearDay() - 1)] = 0
 			counterData.CounterDayYearConnections[int(time.Now().YearDay() - 1)] = 0
-			counterData.CounterDayYearClients[time.Now().YearDay() - 1] = counterData.CounterDayYearClients[counterData.currentPos.YearDay() - 1]
+			counterData.CounterDayYearClients[time.Now().YearDay() - 1] = counterData.CounterClients[int(counterData.currentPos.Hour())]
 
 			if time.Now().Month() != counterData.currentPos.Month() {
 				counterData.CounterMonthBytes[int(time.Now().Month() - 1)] = 0
 				counterData.CounterMonthConnections[int(time.Now().Month() - 1)] = 0
-				counterData.CounterMonthClients[time.Now().Month() - 1] = counterData.CounterMonthClients[counterData.currentPos.Month() - 1]
+				counterData.CounterMonthClients[time.Now().Month() - 1] = counterData.CounterClients[int(counterData.currentPos.Hour())]
 			}
 		}
 

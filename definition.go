@@ -67,7 +67,6 @@ const(
 	TMESS_AGENT_NEW_CONNECT = 5
 	TMESS_AGENT_DEL_CONNECT = 6
 	TMESS_AGENT_ADD_BYTES = 7
-	TMESS_AGENT_CONNECT = 8
 
 	REGULAR = 0
 	MASTER  = 1
@@ -195,8 +194,7 @@ var(
 		{TMESS_AGENT_DEL_CODE, processAgentDelCode},
 		{TMESS_AGENT_NEW_CONNECT, processAgentNewConnect},
 		{TMESS_AGENT_DEL_CONNECT, processAgentDelConnect},
-		{TMESS_AGENT_ADD_BYTES, processAgentAddBytes},
-		{TMESS_AGENT_CONNECT, processAgentConnect} }
+		{TMESS_AGENT_ADD_BYTES, processAgentAddBytes} }
 
 	//функции для обработки web api
 	processingWeb = []ProcessingWeb{

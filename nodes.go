@@ -215,7 +215,7 @@ func processAgentAnswer(message Message, conn *net.Conn, curNode *Node, id strin
 		return
 	}
 
-	logAdd(MESS_INFO, id + " пришла ответ на авторизацию агента")
+	logAdd(MESS_INFO, id + " пришел ответ на авторизацию агента")
 
 	//todo добавить обработку
 }
@@ -260,57 +260,51 @@ func processAgentNewConnect(message Message, conn *net.Conn, curNode *Node, id s
 
 	logAdd(MESS_INFO, id + " пришла информация о новом соединения")
 
-	if len(message.Messages) != 1 {
-		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
-		return
-	}
-
-	code := message.Messages[0]
-
-	value, exist := channels.Load(code)
-	if exist == false {
-		logAdd(MESS_ERROR, id + " не ждем такого соединения " + code)
-		disconnectPeers(code)
-		return
-	}
-	peers := value.(*dConn)
-
-	peers.mutex.Lock()
-	if peers.node[0] == nil {
-		peers.node[0] = curNode
-	} else if peers.pointer[1] == nil {
-		peers.node[1] = curNode
-	}
-	peers.mutex.Unlock()
-
-	//мы должны дождаться два соединения
-	var cWait = 0
-	for (peers.node[0] == nil || peers.node[1] == nil) && cWait < WAIT_COUNT {
-		logAdd(MESS_INFO, id + " ожидаем пира для " + code)
-		time.Sleep(time.Millisecond * WAIT_IDLE)
-		cWait++
-	}
-
-	//если не дождались одного из пира
-	for peers.node[0] == nil || peers.node[1] == nil {
-		logAdd(MESS_ERROR, id + " не дождались пира для " + code)
-		disconnectPeers(code)
-		return
-	}
-
-	//если они у одного агента, то ничего
-	if peers.node[0].Id == peers.node[1].Id {
-		logAdd(MESS_INFO, id + " пиры у одного агента " + code)
-		return
-	}
-
-	//если они у разных агентов, то одному надо отправить команду подключиться к другому
-	if !sendMessage(peers.node[0].Conn, TMESS_AGENT_CONNECT, code, peers.node[1].Ip) {
-		logAdd(MESS_ERROR, id + " не получилось отправить запрос на соединение к агенту " + code)
-		disconnectPeers(code)
-	}
-
-	logAdd(MESS_INFO, id + " отправили запрос на соединение агента к агенту " + code)
+	//if len(message.Messages) != 1 {
+	//	logAdd(MESS_ERROR, id + " не правильное кол-во полей")
+	//	return
+	//}
+	//
+	//code := message.Messages[0]
+	//
+	//value, exist := channels.Load(code)
+	//if exist == false {
+	//	logAdd(MESS_ERROR, id + " не ждем такого соединения " + code)
+	//	disconnectPeers(code)
+	//	return
+	//}
+	//peers := value.(*dConn)
+	//
+	//peers.mutex.Lock()
+	//if peers.node[0] == nil {
+	//	peers.node[0] = curNode
+	//} else if peers.pointer[1] == nil {
+	//	peers.node[1] = curNode
+	//}
+	//peers.mutex.Unlock()
+	//
+	////мы должны дождаться два соединения
+	//var cWait = 0
+	//for (peers.node[0] == nil || peers.node[1] == nil) && cWait < WAIT_COUNT {
+	//	logAdd(MESS_INFO, id + " ожидаем пира для " + code)
+	//	time.Sleep(time.Millisecond * WAIT_IDLE)
+	//	cWait++
+	//}
+	//
+	////если не дождались одного из пира
+	//for peers.node[0] == nil || peers.node[1] == nil {
+	//	logAdd(MESS_ERROR, id + " не дождались пира для " + code)
+	//	disconnectPeers(code)
+	//	return
+	//}
+	//
+	////если они у одного агента, то ничего
+	//if peers.node[0].Id == peers.node[1].Id {
+	//	logAdd(MESS_INFO, id + " пиры у одного агента " + code)
+	//	return
+	//}
+	//
+	//logAdd(MESS_INFO, id + " отправили запрос на соединение агента к агенту " + code)
 }
 
 func processAgentDelConnect(message Message, conn *net.Conn, curNode *Node, id string) {
@@ -347,28 +341,6 @@ func processAgentAddBytes(message Message, conn *net.Conn, curNode *Node, id str
 		addCounter(uint64(bytes))
 	}
 }
-
-func processAgentConnect(message Message, conn *net.Conn, curNode *Node, id string) {
-	if options.Mode != NODE {
-		logAdd(MESS_ERROR, id + " режим не поддерживающий агентов")
-		return
-	}
-
-	logAdd(MESS_INFO, id + " пришла информация статистики")
-
-	if len(message.Messages) != 1 {
-		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
-		return
-	}
-
-	//todo подключаемся к другому агента
-	//111111111111111111111111111111111111
-	//111111111111111111111111111111111111
-	//111111111111111111111111111111111111
-	//111111111111111111111111111111111111
-}
-
-
 
 func sendMessageToNodes(TMessage int, Messages... string) {
 	nodes.Range(func(key interface{}, value interface{}) bool{

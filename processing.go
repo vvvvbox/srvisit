@@ -121,6 +121,11 @@ func processConnect(message Message, conn *net.Conn, curClient *Client, id strin
 		code := randomString(CODE_LENGTH)
 		connectPeers(code)
 
+		//123
+		//todo считаем маршруты до нодов
+		//проверяем версию клиентов
+		//отправляем запросы вместе с адресом куда коннектится
+
 		//самый простой вариант через сервер оба пира
 		if sendMessage(curClient.Conn, TMESS_CONNECT, passDigest, salt, code, "simple", "client", peer.Pid) { //тот кто получает трансляцию
 			if sendMessage(peer.Conn, TMESS_CONNECT, passDigest, salt, code, "simple", "server", curClient.Pid) { //тот кто передает трансляцию

@@ -167,7 +167,7 @@ func nodeClient() {
 		}
 		conn.Close()
 	}
-	logAdd(MESS_INFO, "nodeClient остановился")
+	//logAdd(MESS_INFO, "nodeClient остановился") //недостижимо???
 }
 
 func processAgentAuth(message Message, conn *net.Conn, curNode *Node, id string) {

@@ -421,12 +421,11 @@ func checkStatuses(curClient *Client, first *Contact) {
 			if exist {
 				sendMessage(curClient.Conn, TMESS_STATUS, fmt.Sprint(cleanPid(first.Pid)), "1")
 			} else {
-				sendMessage(curClient.Conn, TMESS_STATUS, fmt.Sprint(cleanPid(first.Pid)), "0")
+				//sendMessage(curClient.Conn, TMESS_STATUS, fmt.Sprint(cleanPid(first.Pid)), "0")
 			}
 		}
 
 		if first.Inner != nil {
-
 			checkStatuses(curClient, first.Inner)
 		}
 

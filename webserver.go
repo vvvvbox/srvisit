@@ -1,19 +1,17 @@
 package main
 
 import (
-	"net/http"
-	"fmt"
-	"encoding/json"
-	"io/ioutil"
-	"os"
 	"bytes"
-	"time"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
 	"strconv"
+	"time"
 )
 
-
-
-func httpServer(){
+func httpServer() {
 
 	http.Handle("/admin", http.RedirectHandler("/admin/welcome", 301))
 	http.HandleFunc("/admin/welcome", handleWelcome)
@@ -30,13 +28,11 @@ func httpServer(){
 	http.HandleFunc("/resource/", handleResource)
 	http.HandleFunc("/api", handleAPI)
 
-	err := http.ListenAndServe(":" + options.HttpServerPort, nil)
+	err := http.ListenAndServe(":"+options.HttpServerPort, nil)
 	if err != nil {
-		logAdd(MESS_ERROR, "webServer не смог занять порт: " + fmt.Sprint(err))
+		logAdd(MESS_ERROR, "webServer не смог занять порт: "+fmt.Sprint(err))
 	}
 }
-
-
 
 //хэндлеры для профиля
 func handleProfileWelcome(w http.ResponseWriter, r *http.Request) {
@@ -71,8 +67,6 @@ func handleProfileMy(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-
-
 //хэндлеры для админки
 func handleWelcome(w http.ResponseWriter, r *http.Request) {
 
@@ -99,7 +93,7 @@ func handleResources(w http.ResponseWriter, r *http.Request) {
 	var buf1 string
 	if options.Mode == MASTER {
 		connectionsString = connectionsString + fmt.Sprintln("\n\nагенты:")
-		nodes.Range(func (key interface {}, value interface {}) bool {
+		nodes.Range(func(key interface{}, value interface{}) bool {
 			agent := value.(*Node)
 			connectionsString = connectionsString + fmt.Sprintln(agent.Id, agent.Ip, "\t", agent.Name)
 			return true
@@ -107,7 +101,7 @@ func handleResources(w http.ResponseWriter, r *http.Request) {
 	}
 
 	connectionsString = connectionsString + fmt.Sprintln("\n\nклиенты:")
-	clients.Range(func (key interface {}, value interface {}) bool {
+	clients.Range(func(key interface{}, value interface{}) bool {
 
 		if value.(*Client).Profile == nil {
 			buf1 = "no auth"
@@ -117,7 +111,7 @@ func handleResources(w http.ResponseWriter, r *http.Request) {
 
 		connectionsString = connectionsString + fmt.Sprintln(key.(string), value.(*Client).Serial, value.(*Client).Version, (*value.(*Client).Conn).RemoteAddr(), buf1)
 
-		value.(*Client).profiles.Range(func (k interface {}, v interface {}) bool {
+		value.(*Client).profiles.Range(func(k interface{}, v interface{}) bool {
 
 			var capt string
 			c := getContactByPid(v.(*Profile).Contacts, cleanPid(value.(*Client).Pid)) //todo потом убрать, лишние итерации не сильно нам интересны
@@ -134,32 +128,32 @@ func handleResources(w http.ResponseWriter, r *http.Request) {
 	})
 
 	connectionsString = connectionsString + fmt.Sprintln("\n\nсессии:")
-	channels.Range(func (key interface {}, value interface {}) bool {
+	channels.Range(func(key interface{}, value interface{}) bool {
 		dConn := value.(*dConn)
 
 		if dConn.pointer[0] != nil {
-			connectionsString = connectionsString + fmt.Sprint( (*dConn.pointer[0]).RemoteAddr(), " <-> ", (*dConn.pointer[0]).LocalAddr() )
+			connectionsString = connectionsString + fmt.Sprint((*dConn.pointer[0]).RemoteAddr(), " <-> ", (*dConn.pointer[0]).LocalAddr())
 		} else {
 			if dConn.node[0] != nil {
-				connectionsString = connectionsString + fmt.Sprint( dConn.node[0].Ip, " <-> ", (*dConn.node[0].Conn).RemoteAddr() )
+				connectionsString = connectionsString + fmt.Sprint(dConn.node[0].Ip, " <-> ", (*dConn.node[0].Conn).RemoteAddr())
 			} else {
-				connectionsString = connectionsString + fmt.Sprint( "nil <-> nil" )
+				connectionsString = connectionsString + fmt.Sprint("nil <-> nil")
 			}
 		}
 
 		if dConn.pointer[1] != nil {
 			if options.Mode != REGULAR {
-				connectionsString = connectionsString + fmt.Sprint( " <-> ", (*dConn.pointer[1]).LocalAddr() )
+				connectionsString = connectionsString + fmt.Sprint(" <-> ", (*dConn.pointer[1]).LocalAddr())
 			}
-			connectionsString = connectionsString + fmt.Sprint( " <-> ", (*dConn.pointer[1]).RemoteAddr() )
+			connectionsString = connectionsString + fmt.Sprint(" <-> ", (*dConn.pointer[1]).RemoteAddr())
 		} else {
 			if dConn.node[1] != nil {
 				if options.Mode != REGULAR {
-					connectionsString = connectionsString + fmt.Sprint( " <-> ", (*dConn.node[1].Conn).RemoteAddr() )
+					connectionsString = connectionsString + fmt.Sprint(" <-> ", (*dConn.node[1].Conn).RemoteAddr())
 				}
-				connectionsString = connectionsString + fmt.Sprint( " <-> ", dConn.node[1].Ip )
+				connectionsString = connectionsString + fmt.Sprint(" <-> ", dConn.node[1].Ip)
 			} else {
-				connectionsString = connectionsString + fmt.Sprint( " <-> nil <-> nil" )
+				connectionsString = connectionsString + fmt.Sprint(" <-> nil <-> nil")
 			}
 		}
 
@@ -168,12 +162,12 @@ func handleResources(w http.ResponseWriter, r *http.Request) {
 	})
 
 	connectionsString = connectionsString + fmt.Sprintln("\n\nпрофили:")
-	profiles.Range(func (key interface {}, value interface {}) bool {
+	profiles.Range(func(key interface{}, value interface{}) bool {
 
-		connectionsString = connectionsString + fmt.Sprintln(key.(string) )//(*value.(*Profile)).Pass)
+		connectionsString = connectionsString + fmt.Sprintln(key.(string)) //(*value.(*Profile)).Pass)
 
-		value.(*Profile).clients.Range(func (key interface {}, value interface {}) bool {
-			connectionsString = connectionsString + fmt.Sprintln("\t", "<- " + key.(string) )
+		value.(*Profile).clients.Range(func(key interface{}, value interface{}) bool {
+			connectionsString = connectionsString + fmt.Sprintln("\t", "<- "+key.(string))
 			return true
 		})
 
@@ -281,8 +275,6 @@ func handleLogs(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 //ресурсы и api
 func handleResource(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, r.URL.Path[1:])
@@ -308,8 +300,6 @@ func handleAPI(w http.ResponseWriter, r *http.Request) {
 	logAdd(MESS_ERROR, "WEB Неизвестное сообщение")
 	http.Error(w, "bad request", http.StatusBadRequest)
 }
-
-
 
 //раскрытие api
 func processApiDefaultVnc(w http.ResponseWriter, r *http.Request) {
@@ -371,7 +361,7 @@ func processApiProfileSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logAdd(MESS_INFO, "WEB Запрос сохранения профиля " + curProfile.Email)
+	logAdd(MESS_INFO, "WEB Запрос сохранения профиля "+curProfile.Email)
 
 	pass1 := string(r.FormValue("abc"))
 	pass2 := string(r.FormValue("def"))
@@ -380,7 +370,7 @@ func processApiProfileSave(w http.ResponseWriter, r *http.Request) {
 	tel := string(r.FormValue("tel"))
 	logo := string(r.FormValue("logo"))
 
-	if (pass1 != "*****") && (len(pass1) > 3) && (pass1 == pass2){
+	if (pass1 != "*****") && (len(pass1) > 3) && (pass1 == pass2) {
 		curProfile.Pass = pass1
 	}
 	curProfile.Capt = capt
@@ -396,7 +386,7 @@ func processApiProfileGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logAdd(MESS_INFO, "WEB Запрос информации профиля " + curProfile.Email)
+	logAdd(MESS_INFO, "WEB Запрос информации профиля "+curProfile.Email)
 
 	newProfile := *curProfile
 	newProfile.Pass = "*****"
@@ -481,8 +471,6 @@ func processApiOptionsSave(w http.ResponseWriter, r *http.Request) {
 	handleOptions(w, r)
 }
 
-
-
 //общие функции
 func checkProfileAuth(w http.ResponseWriter, r *http.Request) *Profile {
 
@@ -499,7 +487,7 @@ func checkProfileAuth(w http.ResponseWriter, r *http.Request) *Profile {
 		}
 	}
 
-	logAdd(MESS_ERROR, "Аутентификация профиля провалилась " + r.RemoteAddr)
+	logAdd(MESS_ERROR, "Аутентификация профиля провалилась "+r.RemoteAddr)
 	w.Header().Set("WWW-Authenticate", "Basic")
 	http.Error(w, "auth req", http.StatusUnauthorized)
 	return nil
@@ -514,13 +502,11 @@ func checkAdminAuth(w http.ResponseWriter, r *http.Request) bool {
 		}
 	}
 
-	logAdd(MESS_ERROR, "Аутентификация админки провалилась " + r.RemoteAddr)
+	logAdd(MESS_ERROR, "Аутентификация админки провалилась "+r.RemoteAddr)
 	w.Header().Set("WWW-Authenticate", "Basic")
 	http.Error(w, "auth req", http.StatusUnauthorized)
 	return false
 }
-
-
 
 func getCounter(bytes []uint64, connections []uint64, clients []uint64, maxIndex int, curIndex int) []string {
 	h := curIndex + 1
@@ -544,17 +530,17 @@ func getCounter(bytes []uint64, connections []uint64, clients []uint64, maxIndex
 
 	stringHeaders := "["
 	for i := 0; i < maxIndex; i++ {
-		stringHeaders = stringHeaders + "'" + fmt.Sprint(headers[i] + 1) + "'"
-		if i != maxIndex - 1 {
-			stringHeaders = stringHeaders  + ", "
+		stringHeaders = stringHeaders + "'" + fmt.Sprint(headers[i]+1) + "'"
+		if i != maxIndex-1 {
+			stringHeaders = stringHeaders + ", "
 		}
 	}
 	stringHeaders = stringHeaders + "]"
 
 	stringValues1 := "["
 	for i := 0; i < maxIndex; i++ {
-		stringValues1 = stringValues1 + fmt.Sprint(values1[i] / 1024 ) //in Kb
-		if i != maxIndex - 1 {
+		stringValues1 = stringValues1 + fmt.Sprint(values1[i]/1024) //in Kb
+		if i != maxIndex-1 {
 			stringValues1 = stringValues1 + ", "
 		}
 	}
@@ -563,7 +549,7 @@ func getCounter(bytes []uint64, connections []uint64, clients []uint64, maxIndex
 	stringValues2 := "["
 	for i := 0; i < maxIndex; i++ {
 		stringValues2 = stringValues2 + fmt.Sprint(values2[i])
-		if i != maxIndex - 1 {
+		if i != maxIndex-1 {
 			stringValues2 = stringValues2 + ", "
 		}
 	}
@@ -572,7 +558,7 @@ func getCounter(bytes []uint64, connections []uint64, clients []uint64, maxIndex
 	stringValues3 := "["
 	for i := 0; i < maxIndex; i++ {
 		stringValues3 = stringValues3 + fmt.Sprint(values3[i])
-		if i != maxIndex - 1 {
+		if i != maxIndex-1 {
 			stringValues3 = stringValues3 + ", "
 		}
 	}
@@ -596,22 +582,22 @@ func getCounterDayWeek() []string {
 }
 
 func getCounterDay() []string {
-	return getCounter(counterData.CounterDayBytes[:], counterData.CounterDayConnections[:], counterData.CounterDayClients[:], 31, int(counterData.currentPos.Day() - 1))
+	return getCounter(counterData.CounterDayBytes[:], counterData.CounterDayConnections[:], counterData.CounterDayClients[:], 31, int(counterData.currentPos.Day()-1))
 }
 
 func getCounterDayYear() []string {
-	return getCounter(counterData.CounterDayYearBytes[:], counterData.CounterDayYearConnections[:], counterData.CounterDayYearClients[:], 365, int(counterData.currentPos.YearDay() - 1))
+	return getCounter(counterData.CounterDayYearBytes[:], counterData.CounterDayYearConnections[:], counterData.CounterDayYearClients[:], 365, int(counterData.currentPos.YearDay()-1))
 }
 
 func getCounterMonth() []string {
-	return getCounter(counterData.CounterMonthBytes[:], counterData.CounterMonthConnections[:], counterData.CounterMonthClients[:], 12, int(counterData.currentPos.Month() - 1))
+	return getCounter(counterData.CounterMonthBytes[:], counterData.CounterMonthConnections[:], counterData.CounterMonthClients[:], 12, int(counterData.currentPos.Month()-1))
 }
 
-func pageReplace(e []byte, a string, b string) []byte{
+func pageReplace(e []byte, a string, b string) []byte {
 	return bytes.Replace(e, []byte(a), []byte(b), -1)
 }
 
-func addMenuAdmin() string{
+func addMenuAdmin() string {
 	out, err := json.Marshal(menuAdmin)
 	if err == nil {
 		return string(out)
@@ -620,7 +606,7 @@ func addMenuAdmin() string{
 	return ""
 }
 
-func addMenuProfile() string{
+func addMenuProfile() string {
 	out, err := json.Marshal(menuProfile)
 	if err == nil {
 		return string(out)

@@ -1,22 +1,20 @@
 package main
 
 import (
-	"net"
-	"os"
 	"bufio"
-	"fmt"
-	"time"
-	"strconv"
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"net"
+	"os"
+	"strconv"
+	"time"
 )
 
-
-
-func mainServer(){
+func mainServer() {
 	logAdd(MESS_INFO, "mainServer запустился")
 
-	ln, err := net.Listen("tcp", ":" + options.MainServerPort)
+	ln, err := net.Listen("tcp", ":"+options.MainServerPort)
 	if err != nil {
 		logAdd(MESS_ERROR, "mainServer не смог занять порт")
 		os.Exit(1)
@@ -39,7 +37,7 @@ func mainServer(){
 
 func mainHandler(conn *net.Conn) {
 	id := randomString(MAX_LEN_ID_LOG)
-	logAdd(MESS_INFO, id + " mainServer получил соединение")
+	logAdd(MESS_INFO, id+" mainServer получил соединение")
 
 	//обновим счетчик клиентов
 	updateCounterClient(true)
@@ -52,15 +50,15 @@ func mainHandler(conn *net.Conn) {
 		buff, err := reader.ReadBytes('}')
 
 		if err != nil {
-			logAdd(MESS_ERROR, id + " ошибка чтения буфера")
+			logAdd(MESS_ERROR, id+" ошибка чтения буфера")
 			break
 		}
 
-		logAdd(MESS_DETAIL, id + fmt.Sprint(" buff (" + strconv.Itoa(len(buff)) + "): " + string(buff)))
+		logAdd(MESS_DETAIL, id+fmt.Sprint(" buff ("+strconv.Itoa(len(buff))+"): "+string(buff)))
 
 		//удаляем мусор
 		if buff[0] != '{' {
-			logAdd(MESS_INFO, id + " mainServer удаляем мусор")
+			logAdd(MESS_INFO, id+" mainServer удаляем мусор")
 			if bytes.Index(buff, []byte("{")) >= 0 {
 				buff = buff[bytes.Index(buff, []byte("{")):]
 			} else {
@@ -71,23 +69,23 @@ func mainHandler(conn *net.Conn) {
 		var message Message
 		err = json.Unmarshal(buff, &message)
 		if err != nil {
-			logAdd(MESS_ERROR, id + " ошибка разбора json")
+			logAdd(MESS_ERROR, id+" ошибка разбора json")
 			time.Sleep(time.Millisecond * WAIT_IDLE)
 			continue
 		}
 
-		logAdd(MESS_DETAIL, id + " " + fmt.Sprint(message))
+		logAdd(MESS_DETAIL, id+" "+fmt.Sprint(message))
 
 		//обрабатываем полученное сообщение
-		if len(processing) > message.TMessage{
-			if processing[message.TMessage].Processing != nil{
+		if len(processing) > message.TMessage {
+			if processing[message.TMessage].Processing != nil {
 				processing[message.TMessage].Processing(message, conn, &curClient, id)
 			} else {
-				logAdd(MESS_INFO, id + " нет обработчика для сообщения")
+				logAdd(MESS_INFO, id+" нет обработчика для сообщения")
 				time.Sleep(time.Millisecond * WAIT_IDLE)
 			}
 		} else {
-			logAdd(MESS_INFO, id + " неизвестное сообщение")
+			logAdd(MESS_INFO, id+" неизвестное сообщение")
 			time.Sleep(time.Millisecond * WAIT_IDLE)
 		}
 
@@ -121,13 +119,13 @@ func mainHandler(conn *net.Conn) {
 	//обновим счетчик клиентов
 	updateCounterClient(false)
 
-	logAdd(MESS_INFO, id + " mainServer потерял соединение с пиром")
+	logAdd(MESS_INFO, id+" mainServer потерял соединение с пиром")
 }
 
-func dataServer(){
+func dataServer() {
 	logAdd(MESS_INFO, "dataServer запустился")
 
-	ln, err := net.Listen("tcp", ":" + options.DataServerPort)
+	ln, err := net.Listen("tcp", ":"+options.DataServerPort)
 	if err != nil {
 		logAdd(MESS_ERROR, "dataServer не смог занять порт")
 		os.Exit(1)
@@ -149,23 +147,22 @@ func dataServer(){
 
 func dataHandler(conn *net.Conn) {
 	id := randomString(6)
-	logAdd(MESS_INFO, id + " dataHandler получил соединение")
+	logAdd(MESS_INFO, id+" dataHandler получил соединение")
 
 	for {
 		code, err := bufio.NewReader(*conn).ReadString('\n')
 
 		if err != nil {
-			logAdd(MESS_ERROR, id + " ошибка чтения кода")
+			logAdd(MESS_ERROR, id+" ошибка чтения кода")
 			break
 		}
 
-		code = code[:len(code) - 1]
+		code = code[:len(code)-1]
 		value, exist := channels.Load(code)
 		if exist == false {
-			logAdd(MESS_ERROR, id + " не ожидаем такого кода")
+			logAdd(MESS_ERROR, id+" не ожидаем такого кода")
 			break
 		}
-
 
 		peers := value.(*dConn)
 		peers.mutex.Lock()
@@ -184,19 +181,19 @@ func dataHandler(conn *net.Conn) {
 		}
 
 		var cWait = 0
-		for peers.pointer[numPeer] == nil && cWait < WAIT_COUNT{
-			logAdd(MESS_INFO, id + " ожидаем пира для " + code)
+		for peers.pointer[numPeer] == nil && cWait < WAIT_COUNT {
+			logAdd(MESS_INFO, id+" ожидаем пира для "+code)
 			time.Sleep(time.Millisecond * WAIT_IDLE)
 			cWait++
 		}
 
 		if peers.pointer[numPeer] == nil {
-			logAdd(MESS_ERROR, id + " превышено время ожидания")
+			logAdd(MESS_ERROR, id+" превышено время ожидания")
 			channels.Delete(code)
 			break
 		}
 
-		logAdd(MESS_INFO, id + " пир существует для " + code)
+		logAdd(MESS_INFO, id+" пир существует для "+code)
 		time.Sleep(time.Millisecond * WAIT_AFTER_CONNECT)
 
 		var z []byte
@@ -210,19 +207,19 @@ func dataHandler(conn *net.Conn) {
 			n1, err1 = (*conn).Read(z)
 
 			if peers.pointer[numPeer] == nil {
-				logAdd(MESS_INFO, id + " потеряли пир")
+				logAdd(MESS_INFO, id+" потеряли пир")
 				time.Sleep(time.Millisecond * WAIT_AFTER_CONNECT)
 				break
 			}
 
 			n2, err2 = (*peers.pointer[numPeer]).Write(z[:n1])
 
-			countBytes = countBytes + uint64(n1 + n2)
+			countBytes = countBytes + uint64(n1+n2)
 
 			if err1 != nil || err2 != nil || n1 == 0 || n2 == 0 {
-				logAdd(MESS_INFO, id + " соединение закрылось: " + fmt.Sprint(n1, n2))
-				logAdd(MESS_INFO, id + " err1: "  + fmt.Sprint(err1))
-				logAdd(MESS_INFO, id + " err2: "  + fmt.Sprint(err2))
+				logAdd(MESS_INFO, id+" соединение закрылось: "+fmt.Sprint(n1, n2))
+				logAdd(MESS_INFO, id+" err1: "+fmt.Sprint(err1))
+				logAdd(MESS_INFO, id+" err2: "+fmt.Sprint(err2))
 				time.Sleep(time.Millisecond * WAIT_AFTER_CONNECT)
 				if peers.pointer[numPeer] != nil {
 					(*peers.pointer[numPeer]).Close()
@@ -233,18 +230,18 @@ func dataHandler(conn *net.Conn) {
 
 		addCounter(countBytes) //todo ну и наверное статистику по байтам в каунтер добавить
 
-		logAdd(MESS_INFO, id + " поток завершается")
+		logAdd(MESS_INFO, id+" поток завершается")
 
 		if options.Mode == NODE {
 			sendMessageToMaster(TMESS_AGENT_DEL_CONNECT, code)
-		}else{
+		} else {
 			disconnectPeers(code)
 		}
 
 		break
 	}
 	(*conn).Close()
-	logAdd(MESS_INFO, id + " dataHandler потерял соединение")
+	logAdd(MESS_INFO, id+" dataHandler потерял соединение")
 
 }
 

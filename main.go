@@ -1,14 +1,14 @@
 package main
 
 import (
-	"runtime"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 )
 
-func main(){
-	logAdd(MESS_INFO, "Запускается сервер reVisit версии " + REVISIT_VERSION)
+func main() {
+	logAdd(MESS_INFO, "Запускается сервер reVisit версии "+REVISIT_VERSION)
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -17,7 +17,7 @@ func main(){
 	for _, x := range os.Args {
 		if strings.Contains(x, "node") {
 			options.Mode = NODE
-		} else if strings.Contains(x, "master"){
+		} else if strings.Contains(x, "master") {
 			options.Mode = MASTER
 		}
 	}
@@ -32,7 +32,6 @@ func main(){
 		go mainServer()   //обработка основных команд от клиентов и агентов
 	}
 
-
 	if options.Mode != MASTER {
 		go dataServer() //обработка потоков данных от клиентов
 	}
@@ -42,7 +41,7 @@ func main(){
 	}
 
 	if options.Mode == NODE {
-		go nodeClient()	//клинет подключающийся к мастеру
+		go nodeClient() //клинет подключающийся к мастеру
 	}
 
 	var r string

@@ -1,23 +1,21 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"net"
 	"net/smtp"
-	"fmt"
-	"encoding/json"
 	"net/url"
 	"strconv"
-	"time"
 	"strings"
+	"time"
 )
 
-
-
 func processVersion(message Message, conn *net.Conn, curClient *Client, id string) {
-	logAdd(MESS_INFO, id + " пришла информация о версии")
+	logAdd(MESS_INFO, id+" пришла информация о версии")
 
 	if len(message.Messages) != 1 {
-		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
+		logAdd(MESS_ERROR, id+" не правильное кол-во полей")
 		return
 	}
 
@@ -25,21 +23,21 @@ func processVersion(message Message, conn *net.Conn, curClient *Client, id strin
 }
 
 func processAuth(message Message, conn *net.Conn, curClient *Client, id string) {
-	logAdd(MESS_INFO, id + " пришла авторизация")
+	logAdd(MESS_INFO, id+" пришла авторизация")
 
 	if len(message.Messages) != 1 {
-		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
+		logAdd(MESS_ERROR, id+" не правильное кол-во полей")
 		return
 	}
 	if len(message.Messages[0]) < 3 {
 		time.Sleep(time.Millisecond * WAIT_IDLE)
 		sendMessage(conn, TMESS_DEAUTH)
-		logAdd(MESS_ERROR, id + " слабый serial")
+		logAdd(MESS_ERROR, id+" слабый serial")
 		return
 	}
 
 	s := getPid(message.Messages[0])
-	logAdd(MESS_INFO, id + " сгенерировали pid")
+	logAdd(MESS_INFO, id+" сгенерировали pid")
 
 	salt := randomString(LEN_SALT)
 
@@ -49,19 +47,19 @@ func processAuth(message Message, conn *net.Conn, curClient *Client, id string) 
 		if c.Conn != nil || (*c.Conn).RemoteAddr() == (*conn).RemoteAddr() {
 			err := (*c.Conn).Close()
 			if err != nil { //todo проверить необходимость этого
-				logAdd(MESS_INFO, id + fmt.Sprint(err))
+				logAdd(MESS_INFO, id+fmt.Sprint(err))
 			}
 			clients.Delete(cleanPid(s))
 			c.Pid = ""
 			c.Pass = ""
 			c.Profile = nil
-			logAdd(MESS_INFO, id + " удалили дубль")
-			exist = false;
+			logAdd(MESS_INFO, id+" удалили дубль")
+			exist = false
 		}
 	}
 
 	if !exist {
-		if sendMessage(conn, TMESS_AUTH, s, salt){
+		if sendMessage(conn, TMESS_AUTH, s, salt) {
 
 			curClient.Conn = conn
 			curClient.Pid = s
@@ -69,23 +67,23 @@ func processAuth(message Message, conn *net.Conn, curClient *Client, id string) 
 			curClient.Salt = salt
 			clients.Store(cleanPid(s), curClient)
 
-			logAdd(MESS_INFO, id + " авторизация успешна")
+			logAdd(MESS_INFO, id+" авторизация успешна")
 
 			addClientToProfile(curClient)
 		}
 	} else {
 		time.Sleep(time.Millisecond * WAIT_IDLE)
 		sendMessage(conn, TMESS_DEAUTH)
-		logAdd(MESS_INFO, id + " авторизация провалена, такой pid занят")
+		logAdd(MESS_INFO, id+" авторизация провалена, такой pid занят")
 	}
 
 }
 
 func processNotification(message Message, conn *net.Conn, curClient *Client, id string) {
-	logAdd(MESS_INFO, id + " уведомление пришло")
+	logAdd(MESS_INFO, id+" уведомление пришло")
 
 	if len(message.Messages) != 2 {
-		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
+		logAdd(MESS_ERROR, id+" не правильное кол-во полей")
 		return
 	}
 
@@ -100,10 +98,10 @@ func processNotification(message Message, conn *net.Conn, curClient *Client, id 
 }
 
 func processConnect(message Message, conn *net.Conn, curClient *Client, id string) {
-	logAdd(MESS_INFO, id + " обрабатываем запрос на подключение")
+	logAdd(MESS_INFO, id+" обрабатываем запрос на подключение")
 
 	if len(message.Messages) < 2 {
-		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
+		logAdd(MESS_ERROR, id+" не правильное кол-во полей")
 		return
 	}
 
@@ -129,24 +127,24 @@ func processConnect(message Message, conn *net.Conn, curClient *Client, id strin
 		//самый простой вариант через сервер оба пира
 		if sendMessage(curClient.Conn, TMESS_CONNECT, passDigest, salt, code, "simple", "client", peer.Pid) { //тот кто получает трансляцию
 			if sendMessage(peer.Conn, TMESS_CONNECT, passDigest, salt, code, "simple", "server", curClient.Pid) { //тот кто передает трансляцию
-				logAdd(MESS_INFO, id + " запросили коммуникацию")
+				logAdd(MESS_INFO, id+" запросили коммуникацию")
 				return
 			}
 		}
 
 		disconnectPeers(code)
-		logAdd(MESS_ERROR, id + " что-то пошло не так")
+		logAdd(MESS_ERROR, id+" что-то пошло не так")
 
 	} else {
-		logAdd(MESS_INFO, id + " нет такого пира")
+		logAdd(MESS_INFO, id+" нет такого пира")
 		sendMessage(curClient.Conn, TMESS_NOTIFICATION, "Нет такого пира")
 	}
 }
 
 func processDisconnect(message Message, conn *net.Conn, curClient *Client, id string) {
-	logAdd(MESS_INFO, id + " пришел запрос на отключение")
+	logAdd(MESS_INFO, id+" пришел запрос на отключение")
 	if len(message.Messages) != 1 {
-		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
+		logAdd(MESS_ERROR, id+" не правильное кол-во полей")
 		return
 	}
 
@@ -160,17 +158,17 @@ func processPing(message Message, conn *net.Conn, curClient *Client, id string) 
 }
 
 func processLogin(message Message, conn *net.Conn, curClient *Client, id string) {
-	logAdd(MESS_INFO, id + " пришел запрос на авторизацию профиля")
+	logAdd(MESS_INFO, id+" пришел запрос на авторизацию профиля")
 	if len(message.Messages) != 2 {
-		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
+		logAdd(MESS_ERROR, id+" не правильное кол-во полей")
 		return
 	}
 
 	email := strings.ToLower(message.Messages[0])
 	profile, ok := profiles.Load(email)
 	if ok == true {
-		if message.Messages[1] == getSHA256(profile.(*Profile).Pass + curClient.Salt) {
-			logAdd(MESS_INFO, id + " авторизация профиля пройдена")
+		if message.Messages[1] == getSHA256(profile.(*Profile).Pass+curClient.Salt) {
+			logAdd(MESS_INFO, id+" авторизация профиля пройдена")
 			sendMessage(conn, TMESS_LOGIN)
 
 			curClient.Profile = profile.(*Profile)
@@ -179,17 +177,17 @@ func processLogin(message Message, conn *net.Conn, curClient *Client, id string)
 			return
 		}
 	} else {
-		logAdd(MESS_ERROR, id + " нет такой учетки")
+		logAdd(MESS_ERROR, id+" нет такой учетки")
 	}
 
-	logAdd(MESS_ERROR, id + " авторизация профиля не успешна")
+	logAdd(MESS_ERROR, id+" авторизация профиля не успешна")
 	sendMessage(conn, TMESS_NOTIFICATION, "Авторизация профиля провалилась!")
 }
 
 func processReg(message Message, conn *net.Conn, curClient *Client, id string) {
-	logAdd(MESS_INFO, id + " пришел запрос на регистрацию")
+	logAdd(MESS_INFO, id+" пришел запрос на регистрацию")
 	if len(message.Messages) != 1 {
-		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
+		logAdd(MESS_ERROR, id+" не правильное кол-во полей")
 		return
 	}
 
@@ -201,34 +199,34 @@ func processReg(message Message, conn *net.Conn, curClient *Client, id string) {
 		newProfile.Pass = randomString(PASSWORD_LENGTH)
 
 		msg := []byte("Subject: Information from reVisit\r\n\r\nYour password is " + newProfile.Pass + "\r\n")
-		err := smtp.SendMail(options.ServerSMTP+ ":" + options.PortSMTP, smtp.PlainAuth("", options.LoginSMTP, options.PassSMTP, options.ServerSMTP), options.LoginSMTP, []string{message.Messages[0]}, msg)
+		err := smtp.SendMail(options.ServerSMTP+":"+options.PortSMTP, smtp.PlainAuth("", options.LoginSMTP, options.PassSMTP, options.ServerSMTP), options.LoginSMTP, []string{message.Messages[0]}, msg)
 		if err != nil {
-			logAdd(MESS_ERROR, id + " не удалось отправить письмо с паролем: " + fmt.Sprint(err))
+			logAdd(MESS_ERROR, id+" не удалось отправить письмо с паролем: "+fmt.Sprint(err))
 			sendMessage(conn, TMESS_NOTIFICATION, "Не удалось отправить письмо с паролем!")
 			return
 		}
 		profiles.Store(newProfile.Email, &newProfile)
 		sendMessage(conn, TMESS_REG, "success")
 		sendMessage(conn, TMESS_NOTIFICATION, "Учетная запись создана, Ваш пароль на почте!")
-		logAdd(MESS_INFO, id + " создали учетку")
+		logAdd(MESS_INFO, id+" создали учетку")
 	} else {
 		//todo отправь дубль на почту
-		logAdd(MESS_INFO, id + " такая учетка уже существует")
+		logAdd(MESS_INFO, id+" такая учетка уже существует")
 		sendMessage(conn, TMESS_NOTIFICATION, "Такая учетная запись уже существует!")
 	}
 
 }
 
 func processContact(message Message, conn *net.Conn, curClient *Client, id string) {
-	logAdd(MESS_INFO, id + " пришел запрос на контакта")
+	logAdd(MESS_INFO, id+" пришел запрос на контакта")
 	if len(message.Messages) != 6 {
-		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
+		logAdd(MESS_ERROR, id+" не правильное кол-во полей")
 		return
 	}
 
 	profile := curClient.Profile
 	if profile == nil {
-		logAdd(MESS_ERROR, id + " не авторизован профиль")
+		logAdd(MESS_ERROR, id+" не авторизован профиль")
 		return
 	}
 
@@ -282,7 +280,7 @@ func processContact(message Message, conn *net.Conn, curClient *Client, id strin
 				c.Digest = message.Messages[4]
 				c.Salt = curClient.Salt
 			}
-			message.Messages[0] = fmt.Sprint(i);
+			message.Messages[0] = fmt.Sprint(i)
 
 			//если такой пид онлайн - добавить наш профиль туда
 			client, exist := clients.Load(cleanPid(message.Messages[3]))
@@ -292,24 +290,24 @@ func processContact(message Message, conn *net.Conn, curClient *Client, id strin
 		}
 
 		//отправим всем авторизованным об изменениях
-		profile.clients.Range(func (key interface {}, value interface {}) bool {
+		profile.clients.Range(func(key interface{}, value interface{}) bool {
 			sendMessage(value.(*Client).Conn, message.TMessage, message.Messages...)
 			return true
 		})
 
 		processStatus(createMessage(TMESS_STATUS, fmt.Sprint(i)), conn, curClient, id)
 
-		logAdd(MESS_INFO, id + " операция с контактом выполнена")
+		logAdd(MESS_INFO, id+" операция с контактом выполнена")
 		return
 	}
-	logAdd(MESS_ERROR, id + " операция с контактом провалилась")
+	logAdd(MESS_ERROR, id+" операция с контактом провалилась")
 }
 
 func processContacts(message Message, conn *net.Conn, curClient *Client, id string) {
-	logAdd(MESS_INFO, id + " пришел запрос на обновления контактов")
+	logAdd(MESS_INFO, id+" пришел запрос на обновления контактов")
 
 	if curClient.Profile == nil {
-		logAdd(MESS_ERROR, id + " профиль не авторизован")
+		logAdd(MESS_ERROR, id+" профиль не авторизован")
 	}
 
 	//отправляем все контакты
@@ -317,19 +315,19 @@ func processContacts(message Message, conn *net.Conn, curClient *Client, id stri
 	if err == nil {
 		enc := url.PathEscape(string(b))
 		sendMessage(conn, TMESS_CONTACTS, enc)
-		logAdd(MESS_INFO, id + " отправили контакты")
+		logAdd(MESS_INFO, id+" отправили контакты")
 
 		processStatuses(createMessage(TMESS_STATUSES), conn, curClient, id)
 	} else {
-		logAdd(MESS_ERROR, id + " не получилось отправить контакты: " + fmt.Sprint(err))
+		logAdd(MESS_ERROR, id+" не получилось отправить контакты: "+fmt.Sprint(err))
 	}
 }
 
 func processLogout(message Message, conn *net.Conn, curClient *Client, id string) {
-	logAdd(MESS_INFO, id + " пришел запрос на выход")
+	logAdd(MESS_INFO, id+" пришел запрос на выход")
 
 	if curClient.Profile == nil {
-		logAdd(MESS_ERROR, id + " не авторизован профиль")
+		logAdd(MESS_ERROR, id+" не авторизован профиль")
 		return
 	}
 
@@ -338,15 +336,15 @@ func processLogout(message Message, conn *net.Conn, curClient *Client, id string
 }
 
 func processConnectContact(message Message, conn *net.Conn, curClient *Client, id string) {
-	logAdd(MESS_INFO, id + " пришел запрос на подключение к контакту")
+	logAdd(MESS_INFO, id+" пришел запрос на подключение к контакту")
 	if len(message.Messages) != 1 {
-		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
+		logAdd(MESS_ERROR, id+" не правильное кол-во полей")
 		return
 	}
 
 	profile := curClient.Profile
 	if profile == nil {
-		logAdd(MESS_ERROR, id + " не авторизован профиль")
+		logAdd(MESS_ERROR, id+" не авторизован профиль")
 		return
 	}
 
@@ -356,24 +354,24 @@ func processConnectContact(message Message, conn *net.Conn, curClient *Client, i
 		if p != nil {
 			processConnect(createMessage(TMESS_CONNECT, p.Pid, p.Digest, p.Salt), conn, curClient, id)
 		} else {
-			logAdd(MESS_ERROR, id + " нет такого контакта в профиле")
+			logAdd(MESS_ERROR, id+" нет такого контакта в профиле")
 			sendMessage(conn, TMESS_NOTIFICATION, "Нет такого контакта в профиле!")
 		}
 	} else {
-		logAdd(MESS_ERROR, id + " ошибка преобразования идентификатора")
+		logAdd(MESS_ERROR, id+" ошибка преобразования идентификатора")
 		sendMessage(conn, TMESS_NOTIFICATION, "Ошибка преобразования идентификатора!")
 	}
 }
 
 func processStatuses(message Message, conn *net.Conn, curClient *Client, id string) {
-	logAdd(MESS_INFO, id + " пришел запрос на статусы профиля")
+	logAdd(MESS_INFO, id+" пришел запрос на статусы профиля")
 	if len(message.Messages) != 0 {
-		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
+		logAdd(MESS_ERROR, id+" не правильное кол-во полей")
 		return
 	}
 
 	if curClient.Profile == nil {
-		logAdd(MESS_ERROR, id + " не авторизован профиль")
+		logAdd(MESS_ERROR, id+" не авторизован профиль")
 		return
 	}
 
@@ -381,14 +379,14 @@ func processStatuses(message Message, conn *net.Conn, curClient *Client, id stri
 }
 
 func processStatus(message Message, conn *net.Conn, curClient *Client, id string) {
-	logAdd(MESS_INFO, id + " пришел запрос на статус контакта")
+	logAdd(MESS_INFO, id+" пришел запрос на статус контакта")
 	if len(message.Messages) != 1 {
-		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
+		logAdd(MESS_ERROR, id+" не правильное кол-во полей")
 		return
 	}
 
 	if curClient.Profile == nil {
-		logAdd(MESS_ERROR, id + " не авторизован профиль")
+		logAdd(MESS_ERROR, id+" не авторизован профиль")
 		return
 	}
 
@@ -407,14 +405,14 @@ func processStatus(message Message, conn *net.Conn, curClient *Client, id string
 }
 
 func processInfoContact(message Message, conn *net.Conn, curClient *Client, id string) {
-	logAdd(MESS_INFO, id + " пришел запрос на информацию о контакте")
+	logAdd(MESS_INFO, id+" пришел запрос на информацию о контакте")
 	if len(message.Messages) != 1 {
-		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
+		logAdd(MESS_ERROR, id+" не правильное кол-во полей")
 		return
 	}
 
 	if curClient.Profile == nil {
-		logAdd(MESS_ERROR, id + " не авторизован профиль")
+		logAdd(MESS_ERROR, id+" не авторизован профиль")
 		return
 	}
 
@@ -428,24 +426,24 @@ func processInfoContact(message Message, conn *net.Conn, curClient *Client, id s
 
 				sendMessage(peer.Conn, TMESS_INFO_CONTACT, curClient.Pid, p.Digest, p.Salt)
 			} else {
-				logAdd(MESS_ERROR, id + " нет такого контакта в сети")
+				logAdd(MESS_ERROR, id+" нет такого контакта в сети")
 				sendMessage(conn, TMESS_NOTIFICATION, "Нет такого контакта в сети!")
 			}
 		} else {
-			logAdd(MESS_ERROR, id + " нет такого контакта в профиле")
+			logAdd(MESS_ERROR, id+" нет такого контакта в профиле")
 			sendMessage(conn, TMESS_NOTIFICATION, "Нет такого контакта в профиле!")
 		}
 	} else {
-		logAdd(MESS_ERROR, id + " ошибка преобразования идентификатора")
+		logAdd(MESS_ERROR, id+" ошибка преобразования идентификатора")
 		sendMessage(conn, TMESS_NOTIFICATION, "Ошибка преобразования идентификатора!")
 	}
 
 }
 
 func processInfoAnswer(message Message, conn *net.Conn, curClient *Client, id string) {
-	logAdd(MESS_INFO, id + " пришел ответ на информацию о контакте")
+	logAdd(MESS_INFO, id+" пришел ответ на информацию о контакте")
 	if len(message.Messages) < 1 {
-		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
+		logAdd(MESS_ERROR, id+" не правильное кол-во полей")
 		return
 	}
 
@@ -455,27 +453,26 @@ func processInfoAnswer(message Message, conn *net.Conn, curClient *Client, id st
 
 		if peer.Profile != nil {
 			sendMessage(peer.Conn, TMESS_INFO_ANSWER, message.Messages...)
-			logAdd(MESS_INFO, id + " вернули ответ")
+			logAdd(MESS_INFO, id+" вернули ответ")
 		} else {
-			logAdd(MESS_ERROR, id + " деавторизованный профиль")
+			logAdd(MESS_ERROR, id+" деавторизованный профиль")
 		}
 	} else {
-		logAdd(MESS_ERROR, id + " нет такого контакта в сети")
+		logAdd(MESS_ERROR, id+" нет такого контакта в сети")
 		sendMessage(conn, TMESS_NOTIFICATION, "Нет такого контакта в сети!")
 	}
-
 
 }
 
 func processManage(message Message, conn *net.Conn, curClient *Client, id string) {
-	logAdd(MESS_INFO, id + " пришел запрос на управление")
+	logAdd(MESS_INFO, id+" пришел запрос на управление")
 	if len(message.Messages) < 2 {
-		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
+		logAdd(MESS_ERROR, id+" не правильное кол-во полей")
 		return
 	}
 
 	if curClient.Profile == nil {
-		logAdd(MESS_ERROR, id + " не авторизован профиль")
+		logAdd(MESS_ERROR, id+" не авторизован профиль")
 		return
 	}
 
@@ -493,24 +490,24 @@ func processManage(message Message, conn *net.Conn, curClient *Client, id string
 
 				sendMessage(peer.Conn, TMESS_MANAGE, content...)
 			} else {
-				logAdd(MESS_ERROR, id + " нет такого контакта в сети")
+				logAdd(MESS_ERROR, id+" нет такого контакта в сети")
 				sendMessage(conn, TMESS_NOTIFICATION, "Нет такого контакта в сети!")
 			}
 		} else {
-			logAdd(MESS_ERROR, id + " нет такого контакта в профиле")
+			logAdd(MESS_ERROR, id+" нет такого контакта в профиле")
 			sendMessage(conn, TMESS_NOTIFICATION, "Нет такого контакта в профиле!")
 		}
 	} else {
-		logAdd(MESS_ERROR, id + " ошибка преобразования идентификатора")
+		logAdd(MESS_ERROR, id+" ошибка преобразования идентификатора")
 		sendMessage(conn, TMESS_NOTIFICATION, "Ошибка преобразования идентификатора!")
 	}
 }
 
 func processContactReverse(message Message, conn *net.Conn, curClient *Client, id string) {
-	logAdd(MESS_INFO, id + " пришел запрос на добавление в чужую учетку")
+	logAdd(MESS_INFO, id+" пришел запрос на добавление в чужую учетку")
 
 	if len(message.Messages) < 3 {
-		logAdd(MESS_ERROR, id + " не правильное кол-во полей")
+		logAdd(MESS_ERROR, id+" не правильное кол-во полей")
 		return
 	}
 
@@ -521,7 +518,7 @@ func processContactReverse(message Message, conn *net.Conn, curClient *Client, i
 	value, exist := profiles.Load(message.Messages[0])
 	if exist {
 		curProfile := value.(*Profile)
-		if getSHA256(curProfile.Pass + curClient.Salt) == message.Messages[1] {
+		if getSHA256(curProfile.Pass+curClient.Salt) == message.Messages[1] {
 			i := getNewId(curProfile.Contacts)
 
 			c := &Contact{}
@@ -539,16 +536,16 @@ func processContactReverse(message Message, conn *net.Conn, curClient *Client, i
 			curClient.profiles.Store(curProfile.Email, curProfile)
 
 			//отправим всем авторизованным об изменениях
-			curProfile.clients.Range(func (key interface {}, value interface {}) bool {
+			curProfile.clients.Range(func(key interface{}, value interface{}) bool {
 				sendMessage(value.(*Client).Conn, TMESS_CONTACT, fmt.Sprint(i), "node", c.Caption, c.Pid, "", "-1")
 				sendMessage(value.(*Client).Conn, TMESS_STATUS, fmt.Sprint(i), "1")
 				return true
 			})
 
-			logAdd(MESS_INFO, id + " операция с контактом выполнена")
+			logAdd(MESS_INFO, id+" операция с контактом выполнена")
 			return
 		}
 	}
 
-	logAdd(MESS_ERROR, id + " не удалось добавить контакт в чужой профиль")
+	logAdd(MESS_ERROR, id+" не удалось добавить контакт в чужой профиль")
 }

@@ -1,21 +1,19 @@
 package main
 
 import (
-	"fmt"
-	"time"
 	"bytes"
-	"math/rand"
-	"encoding/json"
-	"net"
 	"crypto/sha256"
-	"os"
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"math/rand"
+	"net"
+	"os"
 	"strings"
+	"time"
 )
 
-
-
-func helperThread(){
+func helperThread() {
 	logAdd(MESS_INFO, "helperThread запустился")
 	for true {
 		saveProfiles()
@@ -26,7 +24,7 @@ func helperThread(){
 	logAdd(MESS_INFO, "helperThread закончил работу")
 }
 
-func getPid(serial string) string{
+func getPid(serial string) string {
 
 	var a uint64 = 1
 	for _, f := range serial {
@@ -48,14 +46,14 @@ func getPid(serial string) string{
 	for c < 100 {
 		c = c * 10
 	}
-	d := ((a / 999) / 999 ) % 999
+	d := ((a / 999) / 999) % 999
 	if d == 0 {
 		d = 1
 	}
 	for d < 100 {
 		d = d * 10
 	}
-	e := (((a / 999) / 999 ) / 999 ) % 999
+	e := (((a / 999) / 999) / 999) % 999
 	if e == 0 {
 		e = 1
 	}
@@ -66,7 +64,7 @@ func getPid(serial string) string{
 	return fmt.Sprintf("%d:%d:%d:%d", b, c, d, e)
 }
 
-func logAdd(TMessage int, Messages string){
+func logAdd(TMessage int, Messages string) {
 	if options.FDebug && typeLog >= TMessage {
 
 		if logFile == nil {
@@ -85,7 +83,7 @@ func logAdd(TMessage int, Messages string){
 
 }
 
-func createMessage(TMessage int, Messages ...string) Message{
+func createMessage(TMessage int, Messages ...string) Message {
 	var mes Message
 	mes.TMessage = TMessage
 	mes.Messages = Messages
@@ -110,7 +108,7 @@ func randInt(min int, max int) int {
 	return min + rand.Intn(max-min)
 }
 
-func sendMessage(conn *net.Conn, TMessage int, Messages ...string) bool{
+func sendMessage(conn *net.Conn, TMessage int, Messages ...string) bool {
 	if conn == nil {
 		logAdd(MESS_ERROR, "нет сокета для отправки")
 		return false
@@ -153,7 +151,7 @@ func delContact(first *Contact, id int) *Contact {
 
 	res := first
 
-	for first != nil{
+	for first != nil {
 		for first.Next != nil && first.Next.Id == id {
 			first.Next = first.Next.Next
 		}
@@ -168,7 +166,7 @@ func delContact(first *Contact, id int) *Contact {
 	return res
 }
 
-func getContact(first *Contact, id int) *Contact{
+func getContact(first *Contact, id int) *Contact {
 
 	for first != nil {
 		if first.Id == id {
@@ -188,7 +186,7 @@ func getContact(first *Contact, id int) *Contact{
 	return nil
 }
 
-func getContactByPid(first *Contact, pid string) *Contact{
+func getContactByPid(first *Contact, pid string) *Contact {
 
 	for first != nil {
 		if cleanPid(first.Pid) == pid {
@@ -234,10 +232,10 @@ func getNewId(first *Contact) int {
 	return r
 }
 
-func saveProfiles(){
+func saveProfiles() {
 	var list []Profile
 
-	profiles.Range(func(key interface{}, value interface{}) bool{
+	profiles.Range(func(key interface{}, value interface{}) bool {
 		list = append(list, *value.(*Profile))
 		return true
 	})
@@ -251,20 +249,20 @@ func saveProfiles(){
 				f.Close()
 
 				os.Remove(FILE_PROFILES)
-				os.Rename(FILE_PROFILES + ".tmp", FILE_PROFILES)
+				os.Rename(FILE_PROFILES+".tmp", FILE_PROFILES)
 			} else {
 				f.Close()
-				logAdd(MESS_ERROR, "Не удалось сохранить профили: " + fmt.Sprint(err))
+				logAdd(MESS_ERROR, "Не удалось сохранить профили: "+fmt.Sprint(err))
 			}
 		} else {
-			logAdd(MESS_ERROR, "Не удалось сохранить профили: " + fmt.Sprint(err))
+			logAdd(MESS_ERROR, "Не удалось сохранить профили: "+fmt.Sprint(err))
 		}
 	} else {
-		logAdd(MESS_ERROR, "Не удалось сохранить профили: " + fmt.Sprint(err))
+		logAdd(MESS_ERROR, "Не удалось сохранить профили: "+fmt.Sprint(err))
 	}
 }
 
-func loadProfiles(){
+func loadProfiles() {
 	var list []Profile
 
 	f, err := os.Open(FILE_PROFILES)
@@ -279,17 +277,17 @@ func loadProfiles(){
 					profiles.Store(profile.Email, &profile)
 				}
 			} else {
-				logAdd(MESS_ERROR, "Не получилось загрузить профили: " + fmt.Sprint(err))
+				logAdd(MESS_ERROR, "Не получилось загрузить профили: "+fmt.Sprint(err))
 			}
 		} else {
-			logAdd(MESS_ERROR, "Не получилось загрузить профили: " + fmt.Sprint(err))
+			logAdd(MESS_ERROR, "Не получилось загрузить профили: "+fmt.Sprint(err))
 		}
 	} else {
-		logAdd(MESS_ERROR, "Не получилось загрузить профили: " + fmt.Sprint(err))
+		logAdd(MESS_ERROR, "Не получилось загрузить профили: "+fmt.Sprint(err))
 	}
 }
 
-func saveOptions(){
+func saveOptions() {
 	b, err := json.Marshal(options)
 	if err == nil {
 		f, err := os.Create(FILE_OPTIONS + ".tmp")
@@ -299,20 +297,20 @@ func saveOptions(){
 				f.Close()
 
 				os.Remove(FILE_OPTIONS)
-				os.Rename(FILE_OPTIONS + ".tmp", FILE_OPTIONS)
+				os.Rename(FILE_OPTIONS+".tmp", FILE_OPTIONS)
 			} else {
 				f.Close()
-				logAdd(MESS_ERROR, "Не удалось сохранить настройки: " + fmt.Sprint(err))
+				logAdd(MESS_ERROR, "Не удалось сохранить настройки: "+fmt.Sprint(err))
 			}
 		} else {
-			logAdd(MESS_ERROR, "Не удалось сохранить настройки: " + fmt.Sprint(err))
+			logAdd(MESS_ERROR, "Не удалось сохранить настройки: "+fmt.Sprint(err))
 		}
 	} else {
-		logAdd(MESS_ERROR, "Не удалось сохранить настройки: " + fmt.Sprint(err))
+		logAdd(MESS_ERROR, "Не удалось сохранить настройки: "+fmt.Sprint(err))
 	}
 }
 
-func loadOptions(){
+func loadOptions() {
 	f, err := os.Open(FILE_OPTIONS)
 	defer f.Close()
 	if err == nil {
@@ -320,13 +318,13 @@ func loadOptions(){
 		if err == nil {
 			err = json.Unmarshal(b, &options)
 			if err != nil {
-				logAdd(MESS_ERROR, "Не получилось загрузить настройки: " + fmt.Sprint(err))
+				logAdd(MESS_ERROR, "Не получилось загрузить настройки: "+fmt.Sprint(err))
 			}
 		} else {
-			logAdd(MESS_ERROR, "Не получилось загрузить настройки: " + fmt.Sprint(err))
+			logAdd(MESS_ERROR, "Не получилось загрузить настройки: "+fmt.Sprint(err))
 		}
 	} else {
-		logAdd(MESS_ERROR, "Не получилось загрузить настройки: " + fmt.Sprint(err))
+		logAdd(MESS_ERROR, "Не получилось загрузить настройки: "+fmt.Sprint(err))
 	}
 }
 
@@ -354,7 +352,7 @@ func loadOptions(){
 //	}
 //}
 
-func loadVNCList(){
+func loadVNCList() {
 
 	f, err := os.Open(FILE_VNCLIST)
 	defer f.Close()
@@ -366,23 +364,23 @@ func loadVNCList(){
 				defaultVnc = 0
 				return
 			} else {
-				logAdd(MESS_ERROR, "Не получилось загрузить список VNC: " + fmt.Sprint(err))
+				logAdd(MESS_ERROR, "Не получилось загрузить список VNC: "+fmt.Sprint(err))
 			}
 		} else {
-			logAdd(MESS_ERROR, "Не получилось загрузить список VNC: " + fmt.Sprint(err))
+			logAdd(MESS_ERROR, "Не получилось загрузить список VNC: "+fmt.Sprint(err))
 		}
 	} else {
-		logAdd(MESS_ERROR, "Не получилось загрузить список VNC: " + fmt.Sprint(err))
+		logAdd(MESS_ERROR, "Не получилось загрузить список VNC: "+fmt.Sprint(err))
 	}
 }
 
 //пробежимся по профилям, найдем где есть контакты с нашим пид и добавим этот профиль нам
 func addClientToProfile(client *Client) {
-	profiles.Range(func (key interface {}, value interface {}) bool {
+	profiles.Range(func(key interface{}, value interface{}) bool {
 		profile := *value.(*Profile)
 		if addClientToContacts(profile.Contacts, client, &profile) {
 			//если мы есть хоть в одном конакте этого профиля, пробежимся по ним и отправим свой статус
-			profile.clients.Range(func (key interface {}, value interface{}) bool {
+			profile.clients.Range(func(key interface{}, value interface{}) bool {
 				curClient := value.(*Client)
 				sendMessage(curClient.Conn, TMESS_STATUS, cleanPid(client.Pid), "1")
 				return true
@@ -445,18 +443,18 @@ func saveCounters() {
 		if err == nil {
 			n, err := f.Write(b)
 			if n != len(b) || err != nil {
-				logAdd(MESS_ERROR, "Не удалось сохранить счетчики: " + fmt.Sprint(err))
+				logAdd(MESS_ERROR, "Не удалось сохранить счетчики: "+fmt.Sprint(err))
 			}
 			f.Close()
 		} else {
-			logAdd(MESS_ERROR, "Не удалось сохранить счетчики: " + fmt.Sprint(err))
+			logAdd(MESS_ERROR, "Не удалось сохранить счетчики: "+fmt.Sprint(err))
 		}
 	} else {
-		logAdd(MESS_ERROR, "Не удалось сохранить счетчики: " + fmt.Sprint(err))
+		logAdd(MESS_ERROR, "Не удалось сохранить счетчики: "+fmt.Sprint(err))
 	}
 }
 
-func loadCounters(){
+func loadCounters() {
 	counterData.currentPos = time.Now()
 
 	f, err := os.Open(FILE_COUNTERS)
@@ -466,13 +464,13 @@ func loadCounters(){
 		if err == nil {
 			err = json.Unmarshal(b, &counterData)
 			if err != nil {
-				logAdd(MESS_ERROR, "Не получилось загрузить счетчики: " + fmt.Sprint(err))
+				logAdd(MESS_ERROR, "Не получилось загрузить счетчики: "+fmt.Sprint(err))
 			}
 		} else {
-			logAdd(MESS_ERROR, "Не получилось загрузить счетчики: " + fmt.Sprint(err))
+			logAdd(MESS_ERROR, "Не получилось загрузить счетчики: "+fmt.Sprint(err))
 		}
 	} else {
-		logAdd(MESS_ERROR, "Не получилось загрузить счетчики: " + fmt.Sprint(err))
+		logAdd(MESS_ERROR, "Не получилось загрузить счетчики: "+fmt.Sprint(err))
 	}
 
 	counterData.CounterClients[int(counterData.currentPos.Hour())] = 0
@@ -492,14 +490,14 @@ func addCounter(bytes uint64) {
 	counterData.CounterDayWeekBytes[int(counterData.currentPos.Weekday())] = counterData.CounterDayWeekBytes[int(counterData.currentPos.Weekday())] + bytes
 	counterData.CounterDayWeekConnections[int(counterData.currentPos.Weekday())] = counterData.CounterDayWeekConnections[int(counterData.currentPos.Weekday())] + 1
 
-	counterData.CounterDayBytes[int(counterData.currentPos.Day() - 1)] = counterData.CounterDayBytes[int(counterData.currentPos.Day() - 1)] + bytes
-	counterData.CounterDayConnections[int(counterData.currentPos.Day() - 1)] = counterData.CounterDayConnections[int(counterData.currentPos.Day() - 1)] + 1
+	counterData.CounterDayBytes[int(counterData.currentPos.Day()-1)] = counterData.CounterDayBytes[int(counterData.currentPos.Day()-1)] + bytes
+	counterData.CounterDayConnections[int(counterData.currentPos.Day()-1)] = counterData.CounterDayConnections[int(counterData.currentPos.Day()-1)] + 1
 
-	counterData.CounterDayYearBytes[int(counterData.currentPos.YearDay() - 1)] = counterData.CounterDayYearBytes[int(counterData.currentPos.YearDay() - 1)] + bytes
-	counterData.CounterDayYearConnections[int(counterData.currentPos.YearDay() - 1)] = counterData.CounterDayYearConnections[int(counterData.currentPos.YearDay() - 1)] + 1
+	counterData.CounterDayYearBytes[int(counterData.currentPos.YearDay()-1)] = counterData.CounterDayYearBytes[int(counterData.currentPos.YearDay()-1)] + bytes
+	counterData.CounterDayYearConnections[int(counterData.currentPos.YearDay()-1)] = counterData.CounterDayYearConnections[int(counterData.currentPos.YearDay()-1)] + 1
 
-	counterData.CounterMonthBytes[int(counterData.currentPos.Month() - 1)] = counterData.CounterMonthBytes[int(counterData.currentPos.Month() - 1)] + bytes
-	counterData.CounterMonthConnections[int(counterData.currentPos.Month() - 1)] = counterData.CounterMonthConnections[int(counterData.currentPos.Month() - 1)] + 1
+	counterData.CounterMonthBytes[int(counterData.currentPos.Month()-1)] = counterData.CounterMonthBytes[int(counterData.currentPos.Month()-1)] + bytes
+	counterData.CounterMonthConnections[int(counterData.currentPos.Month()-1)] = counterData.CounterMonthConnections[int(counterData.currentPos.Month()-1)] + 1
 }
 
 func updateCounterClient(add bool) {
@@ -520,16 +518,16 @@ func updateCounterClient(add bool) {
 		counterData.CounterDayWeekClients[int(counterData.currentPos.Weekday())] = count
 	}
 
-	if counterData.CounterDayClients[int(counterData.currentPos.Day() - 1)] < count {
-		counterData.CounterDayClients[int(counterData.currentPos.Day() - 1)] = count
+	if counterData.CounterDayClients[int(counterData.currentPos.Day()-1)] < count {
+		counterData.CounterDayClients[int(counterData.currentPos.Day()-1)] = count
 	}
 
-	if counterData.CounterDayYearClients[int(counterData.currentPos.YearDay() - 1)] < count {
-		counterData.CounterDayYearClients[int(counterData.currentPos.YearDay() - 1)] = count
+	if counterData.CounterDayYearClients[int(counterData.currentPos.YearDay()-1)] < count {
+		counterData.CounterDayYearClients[int(counterData.currentPos.YearDay()-1)] = count
 	}
 
-	if counterData.CounterMonthClients[int(counterData.currentPos.Month() - 1)] < count {
-		counterData.CounterMonthClients[int(counterData.currentPos.Month() - 1)] = count
+	if counterData.CounterMonthClients[int(counterData.currentPos.Month()-1)] < count {
+		counterData.CounterMonthClients[int(counterData.currentPos.Month()-1)] = count
 	}
 }
 
@@ -543,23 +541,23 @@ func swiftCounter() {
 		counterData.CounterConnections[time.Now().Hour()] = 0
 		counterData.CounterClients[time.Now().Hour()] = counterData.CounterClients[counterData.currentPos.Hour()]
 
-		if time.Now().Day() != counterData.currentPos.Day(){
+		if time.Now().Day() != counterData.currentPos.Day() {
 			counterData.CounterDayWeekBytes[int(time.Now().Weekday())] = 0
 			counterData.CounterDayWeekConnections[int(time.Now().Weekday())] = 0
 			counterData.CounterDayWeekClients[time.Now().Weekday()] = counterData.CounterClients[int(counterData.currentPos.Hour())]
 
-			counterData.CounterDayBytes[int(time.Now().Day() - 1)] = 0
-			counterData.CounterDayConnections[int(time.Now().Day() - 1)] = 0
-			counterData.CounterDayClients[time.Now().Day() - 1] = counterData.CounterClients[int(counterData.currentPos.Hour())]
+			counterData.CounterDayBytes[int(time.Now().Day()-1)] = 0
+			counterData.CounterDayConnections[int(time.Now().Day()-1)] = 0
+			counterData.CounterDayClients[time.Now().Day()-1] = counterData.CounterClients[int(counterData.currentPos.Hour())]
 
-			counterData.CounterDayYearBytes[int(time.Now().YearDay() - 1)] = 0
-			counterData.CounterDayYearConnections[int(time.Now().YearDay() - 1)] = 0
-			counterData.CounterDayYearClients[time.Now().YearDay() - 1] = counterData.CounterClients[int(counterData.currentPos.Hour())]
+			counterData.CounterDayYearBytes[int(time.Now().YearDay()-1)] = 0
+			counterData.CounterDayYearConnections[int(time.Now().YearDay()-1)] = 0
+			counterData.CounterDayYearClients[time.Now().YearDay()-1] = counterData.CounterClients[int(counterData.currentPos.Hour())]
 
 			if time.Now().Month() != counterData.currentPos.Month() {
-				counterData.CounterMonthBytes[int(time.Now().Month() - 1)] = 0
-				counterData.CounterMonthConnections[int(time.Now().Month() - 1)] = 0
-				counterData.CounterMonthClients[time.Now().Month() - 1] = counterData.CounterClients[int(counterData.currentPos.Hour())]
+				counterData.CounterMonthBytes[int(time.Now().Month()-1)] = 0
+				counterData.CounterMonthConnections[int(time.Now().Month()-1)] = 0
+				counterData.CounterMonthClients[time.Now().Month()-1] = counterData.CounterClients[int(counterData.currentPos.Hour())]
 			}
 		}
 
@@ -604,9 +602,9 @@ func getMyIp() string {
 	return ip
 }
 
-func ping(conn *net.Conn){
+func ping(conn *net.Conn) {
 	success := true
-	for success{
+	for success {
 		time.Sleep(time.Second * WAIT_PING)
 		success = sendMessage(conn, TMESS_PING)
 	}

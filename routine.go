@@ -233,10 +233,11 @@ func getNewId(first *Contact) int {
 }
 
 func saveProfiles() {
-	var list []Profile
+	var list []*Profile
 
 	profiles.Range(func(key interface{}, value interface{}) bool {
-		list = append(list, *value.(*Profile))
+		profile := value.(*Profile)
+		list = append(list, profile)
 		return true
 	})
 
@@ -272,9 +273,8 @@ func loadProfiles() {
 		if err == nil {
 			err = json.Unmarshal(b, &list)
 			if err == nil {
-				for _, value := range list {
-					profile := value
-					profiles.Store(profile.Email, &profile)
+				for i := 0; i < len(list); i++ {
+					profiles.Store(list[i].Email, &list[i])
 				}
 			} else {
 				logAdd(MESS_ERROR, "Не получилось загрузить профили: "+fmt.Sprint(err))
@@ -377,8 +377,8 @@ func loadVNCList() {
 //пробежимся по профилям, найдем где есть контакты с нашим пид и добавим этот профиль нам
 func addClientToProfile(client *Client) {
 	profiles.Range(func(key interface{}, value interface{}) bool {
-		profile := *value.(*Profile)
-		if addClientToContacts(profile.Contacts, client, &profile) {
+		profile := value.(*Profile)
+		if addClientToContacts(profile.Contacts, client, profile) {
 			//если мы есть хоть в одном конакте этого профиля, пробежимся по ним и отправим свой статус
 			profile.clients.Range(func(key interface{}, value interface{}) bool {
 				curClient := value.(*Client)
@@ -437,7 +437,7 @@ func checkStatuses(curClient *Client, first *Contact) {
 }
 
 func saveCounters() {
-	b, err := json.Marshal(counterData)
+	b, err := json.Marshal(&counterData)
 	if err == nil {
 		f, err := os.Create(FILE_COUNTERS)
 		if err == nil {

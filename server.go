@@ -37,7 +37,7 @@ func mainServer() {
 
 func mainHandler(conn *net.Conn) {
 	id := randomString(MAX_LEN_ID_LOG)
-	logAdd(MESS_INFO, id+" mainServer получил соединение")
+	logAdd(MESS_INFO, id+" mainServer получил соединение "+fmt.Sprint((*conn).RemoteAddr()))
 
 	//обновим счетчик клиентов
 	updateCounterClient(true)
@@ -104,10 +104,10 @@ func mainHandler(conn *net.Conn) {
 
 	//пробежимся по профилям где мы есть и отправим новый статус
 	curClient.profiles.Range(func(key interface{}, value interface{}) bool {
-		clients := (*value.(*Profile)).clients
+		profile := value.(*Profile)
 
 		//все кто авторизовался в этот профиль должен получить новый статус
-		clients.Range(func(key interface{}, value interface{}) bool {
+		profile.clients.Range(func(key interface{}, value interface{}) bool {
 			client := value.(*Client)
 			sendMessage(client.Conn, TMESS_STATUS, cleanPid(curClient.Pid), "0")
 			return true
@@ -119,7 +119,7 @@ func mainHandler(conn *net.Conn) {
 	//обновим счетчик клиентов
 	updateCounterClient(false)
 
-	logAdd(MESS_INFO, id+" mainServer потерял соединение с пиром")
+	logAdd(MESS_INFO, id+" mainServer потерял соединение с пиром "+fmt.Sprint((*conn).RemoteAddr()))
 }
 
 func dataServer() {

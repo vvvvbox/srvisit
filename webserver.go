@@ -390,7 +390,7 @@ func processApiProfileGet(w http.ResponseWriter, r *http.Request) {
 
 	newProfile := *curProfile
 	newProfile.Pass = "*****"
-	b, err := json.Marshal(newProfile)
+	b, err := json.Marshal(&newProfile)
 	if err == nil {
 		w.Write(b)
 		return

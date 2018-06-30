@@ -104,10 +104,10 @@ func mainHandler(conn *net.Conn) {
 
 	//пробежимся по профилям где мы есть и отправим новый статус
 	curClient.profiles.Range(func(key interface{}, value interface{}) bool {
-		profile := *value.(*Profile)
+		clients := (*value.(*Profile)).clients
 
 		//все кто авторизовался в этот профиль должен получить новый статус
-		profile.clients.Range(func(key interface{}, value interface{}) bool {
+		clients.Range(func(key interface{}, value interface{}) bool {
 			client := value.(*Client)
 			sendMessage(client.Conn, TMESS_STATUS, cleanPid(curClient.Pid), "0")
 			return true

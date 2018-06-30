@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	//версия сервера или ноды, пока не используется
 	REVISIT_VERSION = "0.5"
 
 	//общие константы
@@ -218,6 +219,7 @@ type dConn struct {
 	mutex   sync.Mutex
 }
 
+//информацияя о ноде
 type Node struct {
 	Id   string
 	Name string
@@ -225,26 +227,31 @@ type Node struct {
 	Conn *net.Conn
 }
 
+//обработчик для веб запроса
 type ProcessingWeb struct {
 	Make       string
 	Processing func(w http.ResponseWriter, r *http.Request)
 }
 
+//обработчик для запросов агенту
 type ProcessingAgent struct {
 	TMessage   int
 	Processing func(message Message, conn *net.Conn, curNode *Node, id string)
 }
 
+//обработчик для сообщений
 type ProcessingMessage struct {
 	TMessage   int
 	Processing func(message Message, conn *net.Conn, curClient *Client, id string)
 }
 
+//тип для сообщения
 type Message struct {
 	TMessage int
 	Messages []string
 }
 
+//сохраняемые опции
 type Options struct {
 	//настройки smtp сервера
 	ServerSMTP string
@@ -280,6 +287,7 @@ type Options struct {
 	FDebug bool
 }
 
+//информация о внц и основные команды для управления им
 type VNC struct {
 	FileServer string
 	FileClient string
@@ -315,11 +323,13 @@ type VNC struct {
 	Description   string
 }
 
+//меню для веба
 type itemMenu struct {
 	Capt string
 	Link string
 }
 
+//тип для клиента
 type Client struct {
 	Serial  string
 	Pid     string
@@ -334,6 +344,7 @@ type Client struct {
 	profiles sync.Map //профили которые содержат этого клиента в контактах(используем для отправки им информации о своем статусе)
 }
 
+//тип для профиля
 type Profile struct {
 	Email string
 	Pass  string
@@ -349,6 +360,7 @@ type Profile struct {
 	Logo string
 }
 
+//тип для контакта
 type Contact struct {
 	Id      int
 	Caption string

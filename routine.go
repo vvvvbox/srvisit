@@ -362,7 +362,6 @@ func loadVNCList() {
 			err = json.Unmarshal(b, &arrayVnc)
 			if err == nil {
 				defaultVnc = 0
-				return
 			} else {
 				logAdd(MESS_ERROR, "Не получилось загрузить список VNC: "+fmt.Sprint(err))
 			}

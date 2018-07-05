@@ -39,11 +39,10 @@ func mainHandler(conn *net.Conn) {
 	id := randomString(MAX_LEN_ID_LOG)
 	logAdd(MESS_INFO, id+" mainServer получил соединение "+fmt.Sprint((*conn).RemoteAddr()))
 
-	//обновим счетчик клиентов
-	updateCounterClient(true)
+	////обновим счетчик клиентов
+	//updateCounterClient(true)
 
 	var curClient Client
-
 	reader := bufio.NewReader(*conn)
 
 	for {
@@ -117,7 +116,9 @@ func mainHandler(conn *net.Conn) {
 	})
 
 	//обновим счетчик клиентов
-	updateCounterClient(false)
+	if curClient.Pid != "" {
+		updateCounterClient(false)
+	}
 
 	logAdd(MESS_INFO, id+" mainServer потерял соединение с пиром "+fmt.Sprint((*conn).RemoteAddr()))
 }

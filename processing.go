@@ -53,8 +53,9 @@ func processAuth(message Message, conn *net.Conn, curClient *Client, id string) 
 			c.Pid = ""
 			c.Pass = ""
 			c.Profile = nil
-			logAdd(MESS_INFO, id+" удалили дубль")
 			exist = false
+			updateCounterClient(false)
+			logAdd(MESS_INFO, id+" удалили дубль")
 		}
 	}
 
@@ -66,10 +67,9 @@ func processAuth(message Message, conn *net.Conn, curClient *Client, id string) 
 			curClient.Serial = message.Messages[0]
 			curClient.Salt = salt
 			clients.Store(cleanPid(s), curClient)
-
-			logAdd(MESS_INFO, id+" авторизация успешна")
-
+			updateCounterClient(true)
 			addClientToProfile(curClient)
+			logAdd(MESS_INFO, id+" авторизация успешна")
 		}
 	} else {
 		time.Sleep(time.Millisecond * WAIT_IDLE)

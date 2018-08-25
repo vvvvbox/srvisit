@@ -196,19 +196,24 @@ func processReg(message Message, conn *net.Conn, curClient *Client, id string) {
 	if ok == false {
 		newProfile := Profile{}
 		newProfile.Email = strings.ToLower(message.Messages[0])
-		newProfile.Pass = randomString(PASSWORD_LENGTH)
+		if len(options.ServerSMTP) > 0 {
+			newProfile.Pass = randomString(PASSWORD_LENGTH)
 
-		msg := []byte("Subject: Information from reVisit\r\n\r\nYour password is " + newProfile.Pass + "\r\n")
-		err := smtp.SendMail(options.ServerSMTP+":"+options.PortSMTP, smtp.PlainAuth("", options.LoginSMTP, options.PassSMTP, options.ServerSMTP), options.LoginSMTP, []string{message.Messages[0]}, msg)
-		if err != nil {
-			logAdd(MESS_ERROR, id+" не удалось отправить письмо с паролем: "+fmt.Sprint(err))
-			sendMessage(conn, TMESS_NOTIFICATION, "Не удалось отправить письмо с паролем!")
-			return
+			msg := []byte("Subject: Information from reVisit\r\n\r\nYour password is " + newProfile.Pass + "\r\n")
+			err := smtp.SendMail(options.ServerSMTP+":"+options.PortSMTP, smtp.PlainAuth("", options.LoginSMTP, options.PassSMTP, options.ServerSMTP), options.LoginSMTP, []string{message.Messages[0]}, msg)
+			if err != nil {
+				logAdd(MESS_ERROR, id+" не удалось отправить письмо с паролем: "+fmt.Sprint(err))
+				sendMessage(conn, TMESS_NOTIFICATION, "Не удалось отправить письмо с паролем!")
+				return
+			}
+			profiles.Store(newProfile.Email, &newProfile)
+			sendMessage(conn, TMESS_REG, "success")
+			sendMessage(conn, TMESS_NOTIFICATION, "Учетная запись создана, Ваш пароль на почте!")
+			logAdd(MESS_INFO, id+" создали учетку")
+		}else{
+			newProfile.Pass = PREDEFINED_PASS
 		}
-		profiles.Store(newProfile.Email, &newProfile)
-		sendMessage(conn, TMESS_REG, "success")
-		sendMessage(conn, TMESS_NOTIFICATION, "Учетная запись создана, Ваш пароль на почте!")
-		logAdd(MESS_INFO, id+" создали учетку")
+
 	} else {
 		//todo отправь дубль на почту
 		logAdd(MESS_INFO, id+" такая учетка уже существует")

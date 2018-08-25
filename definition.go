@@ -23,6 +23,7 @@ const (
 	MAX_LEN_ID_LOG  = 6
 	MAX_LEN_ID_NODE = 8
 	LEN_SALT        = 16
+	PREDEFINED_PASS = "0000"
 
 	//константы ожидания
 	WAIT_COUNT         = 30
